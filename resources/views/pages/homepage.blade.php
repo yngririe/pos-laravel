@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<?= $dark_mode ? 'dark' : 'light' ?>"><head>
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twist &amp; Roll POS</title>
+    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css">
+    <script>
+        const DISCOUNT_MAP = <?= json_encode($discount_map) ?>;
+        const MENU_ITEMS   = <?= json_encode(array_column($menu_items, null, 'id')) ?>;
+        const BASE_URL     = <?= json_encode($base_url) ?>;
+    </script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1C3924">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
+    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+</head>
+<body>
+
+<div class="toast-container" id="toast-container"></div>
+
+<header class="navbar">
+    <div class="navbar__logo-wrap">
+        <a href="{{ route('home') }}" class="navbar__logo-link">
+            <img src="<?= $base_url ?>assets/images/logo.png" alt="Twist &amp; Roll" class="navbar__logo-img">
+        </a>
+        <span class="branch-badge"><?= htmlspecialchars($branch_name) ?></span>
+    </div>
+    <nav class="navbar__nav">
+        <a href="{{ route('home') }}"       class="nav-link <?= $current_page==='home'       ?'nav-link--active':'' ?>">Home</a>
+        <a href="{{ route('orders') }}"     class="nav-link <?= $current_page==='orders'     ?'nav-link--active':'' ?>">Orders</a>
+        <a href="{{ route('served') }}"     class="nav-link <?= $current_page==='served'     ?'nav-link--active':'' ?>">Served</a>
+        <?php if ($role === 'admin'): ?>
+        <a href="{{ route('statistics') }}" class="nav-link <?= $current_page==='statistics' ?'nav-link--active':'' ?>">Statistics</a>
+        <?php endif; ?>
+    </nav>
+    <div class="navbar__right">
+        <div class="navbar__datetime">
+            <div class="navbar__day"  id="current-day"></div>
+            <div class="navbar__date" id="current-date"></div>
+        </div>
+        <div class="profile-menu" id="profile-menu">
+            <button class="profile-btn" id="profile-btn" aria-label="Profile">
+                <?php if (!empty($nav_user['avatar'])): ?>
+                    <img src="<?= htmlspecialchars($nav_user['avatar']) ?>" class="profile-icon" alt="Profile" style="object-fit:cover;border-radius:50%;">
+                <?php else: ?>
+                    <img src="<?= $base_url ?>assets/images/profile.png" class="profile-icon" alt="Profile">
+                <?php endif; ?>
+            </button>
+            <div class="profile-dropdown" id="profile-dropdown">
+                <a href="{{ route('profile') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
+                    </svg>
+                    Profile
+                </a>
+                <?php if ($role === 'admin'): ?>
+                <a href="{{ route('cashiers.create') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="7" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
+                    </svg>
+                    Create Cashier
+                </a>
+                <?php endif; ?>
+                <button class="logout-btn" id="logout-btn" data-logout-url="{{ route('logout') }}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="home-main">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         SCREEN 1 — Start new order
+         ═══════════════════════════════════════════════════════════ -->
+    <section class="screen screen--start screen--active" id="screen-start">
+        <div class="start-hero">
+            <h1 class="start-hero__title">Welcome to Twist &amp; Roll</h1>
+            <p class="start-hero__subtitle">Your new go-to cravings spot for Sushi</p>
+        </div>
+        <button type="button" class="start-order-btn" id="start-order-btn">
+            <img src="<?= $base_url ?>assets/images/mouse-pointer-click.png" alt="" class="start-order-btn__icon">
+            <span class="start-order-btn__text">
+                <span class="start-order-btn__title">START NEW ORDER</span>
+                <span class="start-order-btn__sub">Tap to begin your delicious journey</span>
+            </span>
+        </button>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         SCREEN 2 — Dine in / Take out
+         ═══════════════════════════════════════════════════════════ -->
+    <section class="screen screen--type" id="screen-type">
+        <div class="start-hero">
+            <h1 class="start-hero__title">Welcome to Twist &amp; Roll</h1>
+            <p class="start-hero__subtitle">Your new go-to cravings spot for Sushi</p>
+        </div>
+        <div class="order-type-grid">
+            <button type="button" class="order-type-card order-type-card--dine-in" id="pick-dine-in" data-type="dine-in">
+                <span class="order-type-card__icon-wrap">
+                    <img src="<?= $base_url ?>assets/images/dine-in.png" alt="" class="order-type-card__icon">
+                </span>
+                <span class="order-type-card__title">Dine In</span>
+                <span class="order-type-card__sub">Enjoy warm at our tables</span>
+            </button>
+            <button type="button" class="order-type-card order-type-card--take-out" id="pick-take-out" data-type="take-out">
+                <span class="order-type-card__icon-wrap">
+                    <img src="<?= $base_url ?>assets/images/take-out.png" alt="" class="order-type-card__icon">
+                </span>
+                <span class="order-type-card__title">Take Out</span>
+                <span class="order-type-card__sub">Packaged fresh for the road</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         SCREEN 3 — Menu + ordering (order type is already set by
+         whichever card was tapped on screen 2)
+         ═══════════════════════════════════════════════════════════ -->
+    <section class="screen screen--order pos-layout" id="screen-order">
+
+    <section class="menu-panel">
+        <h2 class="menu-panel__title">Menu</h2>
+        <div class="menu-grid" id="menu-grid">
+            <?php foreach ($menu_items as $item): ?>
+            <div class="menu-card"
+                 data-id="<?= $item['id'] ?>"
+                 data-name="<?= htmlspecialchars($item['name']) ?>"
+                 data-price="<?= $item['price'] ?>"
+                 data-category="<?= $item['category'] ?>">
+                <div class="menu-card__image-wrap">
+                    <img src="<?= $base_url . htmlspecialchars($item['image']) ?>"
+                         alt="<?= htmlspecialchars($item['name']) ?>"
+                         class="menu-card__image"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="menu-card__image-placeholder" style="display:none;">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="menu-card__info">
+                    <span class="menu-card__name"><?= htmlspecialchars($item['name']) ?></span>
+                    <span class="menu-card__price">Php <?= number_format($item['price']) ?></span>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
+    <aside class="order-panel">
+
+        <div class="order-panel__type-badge" id="order-type-badge">
+            <span class="order-type-badge__icon-wrap">
+                <img src="<?= $base_url ?>assets/images/dine-in.png" alt="" class="order-type-badge__icon" id="order-type-badge-icon">
+            </span>
+            <span class="order-type-badge__label" id="order-type-badge-label">Dine in</span>
+            <button type="button" class="order-type-badge__change" id="change-order-type-btn">Change</button>
+        </div>
+
+        <div class="order-panel__beeper" id="beeper-wrap">
+            <label class="beeper-label" for="beeper-input">Beeper #</label>
+            <input type="number" class="beeper-input" id="beeper-input" min="1" max="16" placeholder="Enter number (1-16)">
+        </div>
+        <p class="beeper-error-msg" id="beeper-error">Beeper number is required.</p>
+
+        <div class="order-items-section">
+            <p class="order-items-label">ORDER ITEMS</p>
+            <div class="order-items-list" id="order-items-list">
+                <div class="order-empty" id="order-empty">
+                    <svg class="order-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    <span class="order-empty__text">No items yet</span>
+                    <span class="order-empty__sub">Tap menu items to add</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="payment-summary">
+            <p class="payment-summary__title">PAYMENT SUMMARY</p>
+            <div class="payment-summary__row">
+                <span class="discount-label">Discount</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="discount-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="discount-value" id="discount-value">Php 0</span>
+            </div>
+            <div class="payment-summary__row">
+                <span>Subtotal</span>
+                <span class="subtotal-value-normal" id="subtotal-value">Php 0</span>
+            </div>
+            <div class="payment-summary__divider"></div>
+            <div class="payment-summary__total">
+                <span>Total</span>
+                <span class="total-amount" id="total-value">Php 0.00</span>
+            </div>
+        </div>
+
+        <div class="payment-methods">
+            <button class="payment-btn payment-btn--active" data-method="cash">Cash</button>
+            <button class="payment-btn" data-method="gcash">Gcash</button>
+        </div>
+
+        <div class="amount-input-wrap" id="amount-wrap">
+            <input type="number" class="amount-input" id="amount-input" placeholder="Php 0.00" step="1" min="0">
+        </div>
+
+        <div id="gcash-wrap" style="display:none;">
+            <div class="order-panel__beeper" id="gcash-ref-wrap">
+                <label class="beeper-label" for="gcash-ref" style="white-space:nowrap;">Ref #</label>
+                <input type="text" class="beeper-input" id="gcash-ref" placeholder="GCash reference number (13 digits)" maxlength="13" minlength="13" inputmode="numeric" pattern="\d{13}">
+            </div>
+            <p class="beeper-error-msg" id="gcash-ref-error">GCash reference number is required.</p>
+        </div>
+
+        <div class="change-display" id="change-display" style="display:none;">
+            <span class="change-display__label">Change</span>
+            <span class="change-display__amount" id="change-amount">Php 0.00</span>
+        </div>
+
+        <button class="place-order-btn" id="place-order-btn" disabled>
+            Place order – Php 0.00
+        </button>
+
+    </aside>
+    </section>
+</main>
+
+    <script src="<?= $base_url ?>assets/js/main.js"></script>
+    <script src="<?= $base_url ?>assets/js/escpos_bluetooth.js"></script>
+    <script src="<?= $base_url ?>modules/homepage/homepage.js"></script>
+    <script src="/assets/js/pwa_register.js"></script>
+</body>
+</html>
