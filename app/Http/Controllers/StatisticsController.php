@@ -6,9 +6,10 @@ use App\Support\Pos;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Admin-only. A "business day" runs 5:00 AM -> 5:00 AM Manila time, see Pos::bizDate().
+ * Admin-only. A "business day" runs 3:00 PM -> 3:00 PM Manila time, see Pos::bizDate().
  */
 class StatisticsController extends Controller
 {
@@ -40,24 +41,42 @@ class StatisticsController extends Controller
         ];
         $year_range = range(2026, 2036);
 
-        // Before 5 AM we are still in the previous business day.
+        // Before 3 PM we are still in the previous business day.
         $bizNow = $nowPht->copy();
-        if ($bizNow->hour < 5) {
+        if ($bizNow->hour < 15) {
             $bizNow->subDay();
         }
         $today = $bizNow->format('Y-m-d');
 
         // ── Dashboard ──────────────────────────────────────────────────────
         $today_data = Pos::one("
-            SELECT COUNT(*) as c, COALESCE(SUM(total),0) as s
+            SELECT COUNT(*) as c,
+                   COALESCE(SUM(total),0) as s,
+                   COALESCE(SUM(CASE WHEN payment_method='cash' THEN total ELSE 0 END),0) as cash_sales,
+                   COALESCE(SUM(CASE WHEN payment_method='gcash' THEN total ELSE 0 END),0) as gcash_sales
             FROM orders
-            WHERE $BIZ_DATE = ? AND status IN ('pending','served') $BRANCH_ONLY
+            WHERE $BIZ_DATE = ? AND status = 'served' $BRANCH_ONLY
         ", [$today]);
+
+        $today_cash_record = Pos::one("
+            SELECT petty_cash
+            FROM daily_cash_records
+            WHERE branch_id = ? AND business_date = ?
+        ", [$branch_id, $today]) ?? ['petty_cash' => 0];
+
+        $today_expenses = Pos::all("
+            SELECT id, amount, created_at
+            FROM daily_expenses
+            WHERE branch_id = ? AND business_date = ?
+            ORDER BY created_at DESC, id DESC
+        ", [$branch_id, $today]);
+        $today_expense_total = array_sum(array_map(fn ($row) => (float) $row['amount'], $today_expenses));
+        $today_total_money = (float)$today_cash_record['petty_cash'] + (float)$today_data['s'] - $today_expense_total;
 
         $monthly = Pos::one("
             SELECT COALESCE(SUM(total),0) as total_sales, COUNT(*) as total_orders
             FROM orders
-            WHERE $BIZ_YEAR=? AND $BIZ_MONTH=? AND status IN ('pending','served') $BRANCH_ONLY
+            WHERE $BIZ_YEAR=? AND $BIZ_MONTH=? AND status = 'served' $BRANCH_ONLY
         ", [$selected_year, $selected_month]);
 
         $best_items = Pos::all("
@@ -84,19 +103,19 @@ class StatisticsController extends Controller
                    COUNT(*) as order_count,
                    COALESCE(SUM(total),0) as total_sales
             FROM orders
-            WHERE $BIZ_YEAR=? AND $BIZ_MONTH=? AND status IN ('pending','served') $BRANCH_ONLY
+            WHERE $BIZ_YEAR=? AND $BIZ_MONTH=? AND status = 'served' $BRANCH_ONLY
             GROUP BY $BIZ_DATE ORDER BY sale_date ASC
         ", [$chart_year, $chart_month]);
 
         $weekly_raw = array_reverse(Pos::all("
-            SELECT YEARWEEK(CONVERT_TZ(created_at,'+00:00','+08:00') - INTERVAL 5 HOUR, 1) as yw,
+            SELECT YEARWEEK(CONVERT_TZ(created_at,'+00:00','+08:00') - INTERVAL 15 HOUR, 1) as yw,
                    MIN($BIZ_DATE) as week_start,
                    MAX($BIZ_DATE) as week_end,
                    COALESCE(SUM(total),0) as total_sales,
                    COUNT(*) as order_count
             FROM orders
-            WHERE status IN ('pending','served') $BRANCH_ONLY
-            GROUP BY YEARWEEK(CONVERT_TZ(created_at,'+00:00','+08:00') - INTERVAL 5 HOUR, 1)
+            WHERE status = 'served' $BRANCH_ONLY
+            GROUP BY YEARWEEK(CONVERT_TZ(created_at,'+00:00','+08:00') - INTERVAL 15 HOUR, 1)
             ORDER BY yw DESC LIMIT 5
         "));
 
@@ -105,7 +124,7 @@ class StatisticsController extends Controller
                    COALESCE(SUM(total),0) as total_sales,
                    COUNT(*) as order_count
             FROM orders
-            WHERE $BIZ_YEAR=? AND status IN ('pending','served') $BRANCH_ONLY
+            WHERE $BIZ_YEAR=? AND status = 'served' $BRANCH_ONLY
             GROUP BY $BIZ_MONTH ORDER BY mo ASC
         ", [$selected_year]);
 
@@ -140,13 +159,65 @@ class StatisticsController extends Controller
             $voids_by_month[$r['mo']] = $r['cnt'];
         }
 
+        $sales_days_by_month = [];
+        foreach (Pos::all("
+            SELECT MONTH(business_date) as mo, COUNT(*) as cnt
+            FROM daily_cash_records
+            WHERE YEAR(business_date)=? AND branch_id=?
+            GROUP BY MONTH(business_date)
+        ", [$selected_year, $branch_id]) as $r) {
+            $sales_days_by_month[$r['mo']] = $r['cnt'];
+        }
+
         // ── Section detail (served / voids / all orders for the month) ─────
         $section_orders = [];
         $section_stats  = [];
         $high_date = $low_date = null;
         $bar_data  = [];
 
-        if ($sidebar_open && $selected_section) {
+        $sales_archive = [];
+
+        if ($sidebar_open && $selected_section === 'sales') {
+            $sales_archive = Pos::all("
+                SELECT d.business_date, d.petty_cash,
+                       COALESCE((SELECT SUM(e.amount) FROM daily_expenses e WHERE e.branch_id=d.branch_id AND e.business_date=d.business_date),0) as expense,
+                       COALESCE(SUM(CASE WHEN o.status='served' AND o.payment_method='cash' THEN o.total ELSE 0 END),0) as cash_sales,
+                       COALESCE(SUM(CASE WHEN o.status='served' AND o.payment_method='gcash' THEN o.total ELSE 0 END),0) as gcash_sales,
+                       COALESCE(SUM(CASE WHEN o.status='served' THEN o.total ELSE 0 END),0) as total_sales
+                FROM daily_cash_records d
+                LEFT JOIN orders o ON o.branch_id=d.branch_id
+                    AND DATE(CONVERT_TZ(o.created_at,'+00:00','+08:00') - INTERVAL 15 HOUR)=d.business_date
+                WHERE d.branch_id=? AND YEAR(d.business_date)=? AND MONTH(d.business_date)=?
+                GROUP BY d.id,d.business_date,d.petty_cash
+                ORDER BY d.business_date DESC
+            ", [$branch_id, $selected_year, $selected_month]);
+
+            $archive_expenses = Pos::all("
+                SELECT id, business_date, amount, created_at
+                FROM daily_expenses
+                WHERE branch_id=? AND YEAR(business_date)=? AND MONTH(business_date)=?
+                ORDER BY business_date DESC, created_at ASC, id ASC
+            ", [$branch_id, $selected_year, $selected_month]);
+
+            $expenses_by_day = [];
+            foreach ($archive_expenses as $expense) {
+                $expenses_by_day[$expense['business_date']][] = $expense;
+            }
+
+            foreach ($sales_archive as &$row) {
+                $row['total_money'] = (float)$row['petty_cash'] + (float)$row['total_sales'] - (float)$row['expense'];
+                $row['expenses'] = $expenses_by_day[$row['business_date']] ?? [];
+            }
+            unset($row);
+
+            $bar_data = array_map(fn ($r) => ['d' => $r['business_date'], 'sales' => $r['total_sales']], array_reverse($sales_archive));
+            $section_stats = [
+                'total' => count($sales_archive),
+                'sum' => array_sum(array_column($sales_archive, 'total_sales')),
+                'highest' => $sales_archive ? max(array_column($sales_archive, 'total_sales')) : 0,
+                'lowest' => $sales_archive ? min(array_column($sales_archive, 'total_sales')) : 0,
+            ];
+        } elseif ($sidebar_open && $selected_section) {
             $status_filter = match ($selected_section) {
                 'served' => "'served'",
                 'voids'  => "'voided'",
@@ -190,7 +261,7 @@ class StatisticsController extends Controller
             ", [$selected_year, $selected_month]);
 
             $bar_data = Pos::all("
-                SELECT $BIZ_DATE as d, COUNT(*) as cnt
+                SELECT $BIZ_DATE as d, COALESCE(SUM(total),0) as sales
                 FROM orders
                 WHERE {$BIZ_YEAR}=? AND {$BIZ_MONTH}=? AND branch_id = $branch_id AND status IN ($status_filter)
                 GROUP BY $BIZ_DATE ORDER BY d
@@ -203,14 +274,51 @@ class StatisticsController extends Controller
         $bar_json     = json_encode($bar_data);
 
         return view('pages.statistics', $shared + compact(
-            'today', 'today_data', 'monthly', 'best_items', 'least_items', 'img_map',
+            'today', 'today_data', 'today_cash_record', 'today_expenses', 'today_expense_total', 'today_total_money', 'monthly', 'best_items', 'least_items', 'img_map',
             'daily_data', 'weekly_raw', 'monthly_trend',
-            'annual_by_month', 'annual_total', 'voids_by_month',
+            'annual_by_month', 'annual_total', 'voids_by_month', 'sales_days_by_month', 'sales_archive',
             'section_orders', 'section_stats', 'high_date', 'low_date', 'bar_data',
             'daily_json', 'weekly_json', 'monthly_json', 'bar_json',
             'selected_year', 'selected_month', 'selected_section', 'sidebar_open',
             'chart_year', 'chart_month', 'months_list', 'year_range'
         ));
+    }
+
+    /** Save or update the starting petty cash for one business day. */
+    public function saveDailyCash(Request $request)
+    {
+        $data = $request->validate([
+            'business_date' => ['required', 'date'],
+            'petty_cash' => ['required', 'numeric', 'min:0', 'max:999999999.99'],
+        ]);
+
+        $key = ['branch_id' => Pos::branchId(), 'business_date' => $data['business_date']];
+        DB::table('daily_cash_records')->updateOrInsert($key, [
+            'petty_cash' => round((float)$data['petty_cash'], 2),
+            'updated_at' => now(),
+            'created_at' => DB::raw('COALESCE(created_at, CURRENT_TIMESTAMP)'),
+        ]);
+
+        return back()->with('cash_record_saved', true);
+    }
+
+    /** Add another expense to the current business day. Expenses are intentionally separate rows. */
+    public function addExpense(Request $request)
+    {
+        $data = $request->validate([
+            'business_date' => ['required', 'date'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999.99'],
+        ]);
+
+        DB::table('daily_expenses')->insert([
+            'branch_id' => Pos::branchId(),
+            'business_date' => $data['business_date'],
+            'amount' => round((float)$data['amount'], 2),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return back()->with('expense_added', true);
     }
 
     /** JSON feed for the Excel export (the browser builds the .xlsx). */
@@ -320,7 +428,7 @@ class StatisticsController extends Controller
             $wParams[] = $filterMonth;
         }
         $weekly = Pos::all("
-            SELECT YEARWEEK(CONVERT_TZ(created_at,'+00:00','+08:00') - INTERVAL 5 HOUR, 1) AS yw,
+            SELECT YEARWEEK(CONVERT_TZ(created_at,'+00:00','+08:00') - INTERVAL 15 HOUR, 1) AS yw,
                    MIN($BIZ_DATE) AS week_start,
                    MAX($BIZ_DATE) AS week_end,
                    COUNT(*) AS total_orders,
@@ -330,7 +438,7 @@ class StatisticsController extends Controller
                    COALESCE(SUM(CASE WHEN status='served' THEN discount ELSE 0 END),0) AS total_discounts
             FROM orders
             WHERE $wWhere AND status IN ('served','voided')
-            GROUP BY YEARWEEK(CONVERT_TZ(created_at,'+00:00','+08:00') - INTERVAL 5 HOUR, 1)
+            GROUP BY YEARWEEK(CONVERT_TZ(created_at,'+00:00','+08:00') - INTERVAL 15 HOUR, 1)
             ORDER BY yw ASC
         ", $wParams);
 

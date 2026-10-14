@@ -1492,3 +1492,102 @@ body {
 :root[data-theme="dark"] .amount-input::placeholder {
     color: var(--text-light);
 }
+/* ═══════════════════════════════════════════════════════════════
+   2026-10 POS tablet usability pass
+   Tuned for 11-inch Android tablets such as Infinix XPAD 30E.
+   ═══════════════════════════════════════════════════════════════ */
+.order-type-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: min(1080px, 96%);
+}
+.order-type-card { min-width: 0; }
+.order-type-card__svg-icon svg { width: 28px; height: 28px; }
+
+/* Slightly shorter menu cards, with more readable labels. */
+.menu-grid {
+    grid-template-columns: repeat(auto-fit, minmax(clamp(140px, 12vw, 210px), 1fr));
+    gap: 14px;
+}
+.menu-card { aspect-ratio: 218 / 178; border-radius: 24px; }
+.menu-card__image-wrap { padding: 10px 12px 4px; }
+.menu-card__info { padding: 5px 12px 10px; }
+.menu-card__name { font-size: clamp(14px, 1.22vw, 20px); font-weight: 700; }
+.menu-card__price { font-size: clamp(13px, 1.05vw, 17px); }
+
+/* Wider cart and reliable vertical scrolling on shorter browser viewports. */
+.pos-layout { grid-template-columns: minmax(0, 1fr) clamp(380px, 31vw, 480px); }
+.order-panel {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: 16px 20px 20px;
+}
+.order-panel::-webkit-scrollbar { width: 5px; }
+.order-panel::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 99px; }
+.order-items-section { flex: 0 0 auto; min-height: 120px; max-height: 34vh; }
+.order-items-list { min-height: 90px; max-height: 31vh; }
+
+/* Total is intentionally brand green rather than gold. */
+.total-amount { color: var(--green-100); font-size: clamp(15px, 1.25vw, 20px); font-weight: 800; }
+
+/* Bigger tendered-cash field for touch use. */
+.amount-input {
+    min-height: 50px;
+    padding: 12px 14px;
+    font-size: clamp(15px, 1.15vw, 18px);
+    font-weight: 600;
+}
+
+.discount-select {
+    min-width: 126px;
+    min-height: 36px;
+    padding: 6px 30px 6px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    background: var(--panel-bg);
+    color: var(--text-primary);
+    font: 600 13px 'Poppins', sans-serif;
+    outline: none;
+}
+.discount-select:focus { border-color: var(--green-100); }
+
+@media (max-width: 1200px) {
+    .pos-layout { grid-template-columns: minmax(0, 1fr) 400px; }
+    .menu-panel { padding: 18px 18px 20px 24px; }
+    .menu-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+}
+
+/* Landscape tablet / reduced browser width. Keep POS side-by-side while useful. */
+@media (min-width: 761px) and (max-width: 1050px) {
+    .pos-layout { grid-template-columns: minmax(0, 1fr) 390px; }
+    .menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .navbar { padding-inline: 16px; }
+    .navbar__right { gap: 12px; }
+    .order-panel { border-radius: 28px; padding: 14px 16px 18px; }
+    .order-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 720px; }
+}
+
+/* Portrait/narrow tablet and phones: page itself scrolls, so checkout is reachable. */
+@media (max-width: 760px) {
+    html, body { height: auto; min-height: 100%; }
+    body { overflow-x: hidden; overflow-y: auto; }
+    .home-main { overflow: visible; min-height: 0; }
+    .pos-layout { display: flex; flex-direction: column; height: auto; overflow: visible; }
+    .menu-panel { overflow: visible; }
+    .order-panel {
+        width: calc(100% - 28px);
+        max-width: 620px;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        margin: 12px auto 28px;
+    }
+    .order-items-section, .order-items-list { max-height: 260px; }
+    .order-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .payment-methods { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 520px) {
+    .order-type-grid { grid-template-columns: 1fr; }
+    .menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

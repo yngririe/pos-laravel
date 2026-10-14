@@ -31,7 +31,7 @@ class HomeController extends Controller
 
         $settings['cashier_name'] = DB::table('users')->where('id', auth()->id())->value('full_name') ?? '';
 
-        foreach (['show_discount', 'show_cashier', 'show_order_type', 'show_beeper'] as $flag) {
+        foreach (['show_discount', 'show_cashier', 'show_order_type', 'show_payment_type', 'show_beeper'] as $flag) {
             $settings[$flag] = (bool) ($settings[$flag] ?? false);
         }
 

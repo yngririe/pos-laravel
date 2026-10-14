@@ -134,7 +134,7 @@
       const dt = new Date(d.d + "T00:00:00");
       return `${dt.toLocaleString("en",{month:"short"})} ${dt.getDate()}`;
     });
-    const values = BAR_DATA.map((d) => parseInt(d.cnt));
+    const values = BAR_DATA.map((d) => parseFloat(d.sales || 0));
     if (sectionBarChart) sectionBarChart.destroy();
     sectionBarChart = new Chart(ctx, {
       type: "bar",
@@ -143,11 +143,10 @@
       options: {
         responsive: true,
         plugins: { legend:{display:false},
-          tooltip:{callbacks:{label:(ctx)=>`${ctx.parsed.y} orders`}},
+          tooltip:{callbacks:{label:(ctx)=>`₱${ctx.parsed.y.toLocaleString()}`}},
           datalabels:false },
         scales: {
-          y: { ticks:{stepSize:1,font:{family:"Poppins",size:11},color:"#5A6B5E"},
-            grid:{color:"rgba(0,0,0,0.05)"},beginAtZero:true },
+          y: pesoYAxis(values),
           x: { ticks:{font:{family:"Poppins",size:10},color:"#5A6B5E",maxRotation:0,padding:8},
             grid:{display:false} },
         },
@@ -418,22 +417,17 @@
     // ── SHEET 1: ORDERS (merged includes Branch column) ─────────────────
     const orderHeaders = isMerged
       ? ["Branch","Order ID","Beeper #","Items","Order Type","Payment",
-         "GCash Ref #","Extra GCash Ref #","Extra GCash Amt",
          "Subtotal","Discount","Refund","Total","Change",
          "Status","Date Ordered","Date Served"]
       : ["Order ID","Beeper #","Items","Order Type","Payment",
-         "GCash Ref #","Extra GCash Ref #","Extra GCash Amt",
          "Subtotal","Discount","Refund","Total","Change",
          "Status","Date Ordered","Date Served"];
 
     const orderRows = (data.orders||[]).map((o)=>{
       const base = [
         o.id, o.beeper_number, o.items_str||"",
-        o.order_type==="dine-in"?"Dine In":"Take Out",
+        ({"dine-in":"Dine In","take-out":"Take Out","delivery":"Delivery","pick-up":"Pick Up"}[o.order_type] || ucfirst(o.order_type)),
         ucfirst(o.payment_method),
-        o.gcash_reference        || "—",
-        o.gcash_reference_extra  || "—",
-        fmtMoney(o.gcash_extra_amount||0),
         fmtMoney(o.subtotal||0),
         fmtMoney(o.discount||0),
         fmtMoney(o.refund_amount||0),
@@ -460,14 +454,13 @@
     if (isMerged && data.branches_data && data.branches_data.length > 0) {
       const branchOnlyHeaders = [
         "Order ID","Beeper #","Items","Order Type","Payment",
-        "GCash Ref #","Subtotal","Discount","Total","Status","Date Ordered","Date Served"
+        "Subtotal","Discount","Total","Status","Date Ordered","Date Served"
       ];
       data.branches_data.forEach((branch) => {
         const bRows = (branch.orders||[]).map((o)=>[
           o.id, o.beeper_number, o.items_str||"",
-          o.order_type==="dine-in"?"Dine In":"Take Out",
+          ({"dine-in":"Dine In","take-out":"Take Out","delivery":"Delivery","pick-up":"Pick Up"}[o.order_type] || ucfirst(o.order_type)),
           ucfirst(o.payment_method),
-          o.gcash_reference || "—",
           fmtMoney(o.subtotal||0),
           fmtMoney(o.discount||0),
           fmtMoney(o.total||0),
@@ -480,7 +473,7 @@
         const bws = makeSheet(
           `${branch.branch_name} — Orders${filterLabel}`,
           branchOnlyHeaders, bRows,
-          [10,10,40,12,12,20,12,12,12,12,22,22], 9
+          [10,10,40,12,12,12,12,12,12,22,22], 8
         );
         XLSX.utils.book_append_sheet(wb, bws, sheetName);
       });
@@ -832,12 +825,6 @@
         <span>Php ${Number(item.price*item.qty).toLocaleString("en-PH",{minimumFractionDigits:0})}</span>
       </div>`).join("");
 
-    const isGcash=(orderData.payment||"").toLowerCase()==="gcash";
-    let gcashRows="";
-    if (isGcash) {
-      if (orderData.gcash_reference) gcashRows+=`<div class="summary-row"><span>GCash Ref #</span><span style="font-weight:600;">${orderData.gcash_reference}</span></div>`;
-      if (orderData.gcash_reference_extra) gcashRows+=`<div class="summary-row"><span>Extra Ref # <span style="font-size:11px;color:#0070C0;">(+₱${Number(orderData.gcash_extra_amount||0).toLocaleString()})</span></span><span style="font-weight:600;color:#0070C0;">${orderData.gcash_reference_extra}</span></div>`;
-    }
 
     const discountAmt=parseFloat(orderData.discount)||0;
     const refundAmt  =parseFloat(orderData.refund_amount)||0;
@@ -864,7 +851,6 @@
         <div class="order-divider"></div>
         <div class="order-summary">
           <div class="summary-row"><span>Mode of Payment</span><span>${orderData.payment||"—"}</span></div>
-          ${gcashRows}
           <div class="summary-row"><span>Subtotal</span><span>Php ${Number(orderData.subtotal).toLocaleString("en-PH",{minimumFractionDigits:0})}</span></div>
           ${discountRow}${refundRow}
           <div class="summary-total">
@@ -900,9 +886,6 @@
         total:                 parseFloat((row.cells[4]?.textContent||"0").replace(/[₱,\s]/g,"")),
         ordered_at:            row.getAttribute("data-ordered-at")||row.cells[1]?.textContent.trim()||"",
         served_at:             row.getAttribute("data-served-at")||"",
-        gcash_reference:       row.getAttribute("data-gcash-ref")||"",
-        gcash_reference_extra: row.getAttribute("data-gcash-ref-extra")||"",
-        gcash_extra_amount:    parseFloat(row.getAttribute("data-gcash-extra-amount")||"0"),
       });
     });
   });

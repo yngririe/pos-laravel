@@ -3,7 +3,7 @@
 
     const PER_PAGE = 8;
     let currentPage    = 1;
-    let currentType    = 'all';   // 'all' | 'dine-in' | 'take-out'
+    let currentPayment = 'all';   // 'all' | 'cash' | 'gcash'
     let currentDay     = 'all';   // 'all' | 'YYYY-MM-DD'
     let searchVal      = '';
 
@@ -11,7 +11,7 @@
     function getFilteredCards() {
         return Array.from(document.querySelectorAll('.served-card')).filter(card => {
             // Type filter
-            const typeMatch = currentType === 'all' || card.dataset.type === currentType;
+            const paymentMatch = currentPayment === 'all' || card.dataset.payment === currentPayment;
 
             // Day filter (business date stored in data-biz-date)
             const dayMatch  = currentDay  === 'all' || card.dataset.bizDate === currentDay;
@@ -20,7 +20,7 @@
             const textMatch = searchVal === '' ||
                 card.textContent.toLowerCase().includes(searchVal);
 
-            return typeMatch && dayMatch && textMatch;
+            return paymentMatch && dayMatch && textMatch;
         });
     }
 
@@ -74,12 +74,12 @@
     }
 
     // ── Type filter button clicks ─────────────────────────────────────
-    document.querySelectorAll('.served-filter[data-group="type"]').forEach(btn => {
+    document.querySelectorAll('.served-filter[data-group="payment"]').forEach(btn => {
         btn.addEventListener('click', function () {
-            document.querySelectorAll('.served-filter[data-group="type"]')
+            document.querySelectorAll('.served-filter[data-group="payment"]')
                 .forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentType = this.dataset.filter;
+            currentPayment = this.dataset.filter;
             renderPage(1);
         });
     });

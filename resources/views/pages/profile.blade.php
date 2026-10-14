@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="<?= !empty($receipt['dark_mode']) ? 'dark' : 'light' ?>">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -53,6 +53,10 @@
                     Profile
                 </a>
                 <?php if ($role === 'admin'): ?>
+                                <a href="{{ route('settings') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.1 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2V9.6h.4A1.7 1.7 0 0 0 4.1 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.5 4.1a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 9.9 2H14v.4a1.7 1.7 0 0 0 1.1 1.7 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.5 8.5a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.4V14h-.4a1.7 1.7 0 0 0-1.8 1z"/></svg>
+                    Settings
+                </a>
                 <a href="{{ route('cashiers.create') }}" class="dropdown-item">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="9" cy="7" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
@@ -87,7 +91,7 @@
     </div>
 
     <h1 class="profile-page__title">My Profile</h1>
-    <p class="profile-page__sub">Manage your account information, security settings, and receipt preferences.</p>
+    <p class="profile-page__sub">Manage your account information and password security.</p>
 
     <div class="toast-container" id="toast-container">
         <?php if ($success_msg): ?>
@@ -155,17 +159,7 @@
                 </svg>
                 Change Password
             </button>
-            <?php if ($role === 'admin'): ?>
-            <button class="profile-btn-secondary" id="open-receipt-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                </svg>
-                Receipt Settings
-            </button>
-            <?php endif; ?>
+
         </div>
 
         <!-- ── RIGHT: Panels ── -->
@@ -319,203 +313,6 @@
                     </div>
                 </form>
             </div>
-
-            <!-- ══════════════════════════════════════════════
-                 RECEIPT SETTINGS CARD
-                 ══════════════════════════════════════════════ -->
-            <?php if ($role === 'admin'): ?>
-            <div class="profile-card" id="receipt-card">
-                <div class="profile-card__header">
-                    <div class="profile-card__header-left">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
-                        </svg>
-                        <span>Receipt Settings</span>
-                    </div>
-                </div>
-
-                <form id="logo-form" method="POST" enctype="multipart/form-data" style="display:none;">
-@csrf
-                    <input type="hidden" name="action" value="upload_logo">
-                    <input type="file" id="logo-input" name="logo" accept="image/*">
-                </form>
-
-                <form method="POST" id="receipt-form">
-@csrf
-                    <input type="hidden" name="action" value="save_receipt">
-
-                    <!-- Store Logo -->
-                    <p class="receipt-section-label">Store Logo</p>
-                    <div class="logo-upload-row">
-                        <div class="logo-thumb" id="logo-thumb">
-                            <img src="<?= htmlspecialchars($base_url . (!empty($receipt['logo_path']) ? $receipt['logo_path'] : 'assets/images/logo.png')) ?>"
-                                 id="logo-preview-img" alt="Store logo">
-                        </div>
-                        <div class="logo-upload-actions">
-                            <button type="button" class="profile-btn-secondary" id="logo-upload-btn" style="width:auto;padding:9px 18px;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                    <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                                </svg>
-                                Upload Logo
-                            </button>
-                            <span class="label-optional">Shown on the receipt instead of a plain store name.</span>
-                        </div>
-                    </div>
-
-                    <!-- Store Info -->
-                    <p class="receipt-section-label" style="margin-top:18px;">Store Information</p>
-                    <div class="profile-fields profile-fields--2col">
-                        <div class="profile-field profile-field--full">
-                            <label class="profile-field__label">Address</label>
-                            <input class="profile-input" type="text" name="store_address"
-                                   value="<?= htmlspecialchars($receipt['store_address'] ?? '') ?>"
-                                   placeholder="e.g. 123 Main St, City">
-                        </div>
-                    </div>
-
-                    <!-- Receipt Text -->
-                    <p class="receipt-section-label" style="margin-top:18px;">Receipt Text</p>
-                    <div class="profile-fields profile-fields--2col">
-                        <div class="profile-field profile-field--full">
-                            <label class="profile-field__label">Header Message <span class="label-optional">(optional — shown above items)</span></label>
-                            <input class="profile-input" type="text" name="receipt_header"
-                                   value="<?= htmlspecialchars($receipt['receipt_header'] ?? '') ?>"
-                                   placeholder="e.g. Official Receipt">
-                        </div>
-                        <div class="profile-field profile-field--full">
-                            <label class="profile-field__label">Footer Message <span class="label-optional">(shown at the bottom)</span></label>
-                            <input class="profile-input" type="text" name="receipt_footer"
-                                   value="<?= htmlspecialchars($receipt['receipt_footer'] ?? '') ?>"
-                                   placeholder="e.g. Thank you for dining with us!">
-                        </div>
-                    </div>
-
-                    <!-- Show/Hide Toggles -->
-                    <p class="receipt-section-label" style="margin-top:18px;">Show on Receipt</p>
-                    <div class="receipt-toggles">
-                        <label class="receipt-toggle-row">
-                            <span class="receipt-toggle-label">Discount line</span>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="show_discount" <?= $receipt['show_discount'] ? 'checked' : '' ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </label>
-                        <label class="receipt-toggle-row">
-                            <span class="receipt-toggle-label">Order type (Dine in / Take out)</span>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="show_order_type" <?= $receipt['show_order_type'] ? 'checked' : '' ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </label>
-                        <label class="receipt-toggle-row">
-                            <span class="receipt-toggle-label">Payment type (Cash / GCash)</span>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="show_payment_type" <?= $receipt['show_payment_type'] ? 'checked' : '' ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </label>
-                        <label class="receipt-toggle-row">
-                            <span class="receipt-toggle-label">Beeper number</span>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="show_beeper" <?= $receipt['show_beeper'] ? 'checked' : '' ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </label>
-                    </div>
-
-                    <!-- Receipt Preview -->
-                    <p class="receipt-section-label" style="margin-top:18px;">Preview</p>
-                    <div class="receipt-preview" id="receipt-preview">
-                        <img class="rp-logo" id="rp-logo"
-                             src="<?= htmlspecialchars($base_url . (!empty($receipt['logo_path']) ? $receipt['logo_path'] : 'assets/images/logo.png')) ?>"
-                             alt="Store logo">
-
-                        <div class="rp-storename"><?= htmlspecialchars(strtoupper($receipt['store_name'] ?? 'Twist & Roll')) ?></div>
-                        <?php if (!empty($receipt['store_address'])): ?>
-                        <div class="rp-line" id="rp-address"><?= htmlspecialchars($receipt['store_address']) ?></div>
-                        <?php else: ?>
-                        <div class="rp-line rp-placeholder" id="rp-address">ADDRESS GOES HERE</div>
-                        <?php endif; ?>
-
-                        <?php if (!empty($receipt['receipt_header'])): ?>
-                        <div class="rp-line rp-header" id="rp-header"><?= htmlspecialchars($receipt['receipt_header']) ?></div>
-                        <?php else: ?>
-                        <div class="rp-line rp-placeholder rp-header" id="rp-header"></div>
-                        <?php endif; ?>
-
-                        <div class="rp-divider"></div>
-                        <div class="rp-info-row">
-                            <div class="rp-info-col">
-                                <div id="rp-order-type-row" style="<?= $receipt['show_order_type'] ? '' : 'display:none' ?>">ORDER TYPE: DINE IN</div>
-                                <div id="rp-payment-type-row" style="<?= $receipt['show_payment_type'] ? '' : 'display:none' ?>">PAYMENT TYPE: CASH</div>
-                            </div>
-                            <div class="rp-info-col rp-info-col--right">
-                                <div>MM - DD - YYYY&nbsp;&nbsp;&nbsp;00:00</div>
-                                <div id="rp-beeper-row" style="<?= $receipt['show_beeper'] ? '' : 'display:none' ?>">BEEPER #: 1</div>
-                            </div>
-                        </div>
-
-                        <div class="rp-divider"></div>
-                        <div class="rp-row rp-col-headers"><span>ITEM</span><span>QTY</span><span>PRICE</span></div>
-                        <div class="rp-divider"></div>
-                        <div class="rp-row rp-item"><span>Eruption</span><span>1</span><span>229</span></div>
-                        <div class="rp-row rp-item"><span>California Maki</span><span>1</span><span>144</span></div>
-                        <div class="rp-row rp-item"><span>Cheesy Shrimp Bomb</span><span>2</span><span>348</span></div>
-
-                        <div class="rp-divider"></div>
-                        <div class="rp-row"><span>SUBTOTAL</span><span>721</span></div>
-                        <div class="rp-row rp-discount" id="rp-discount-row" style="<?= $receipt['show_discount'] ? '' : 'display:none' ?>">
-                            <span>DISCOUNT</span><span>-45</span>
-                        </div>
-                        <div class="rp-row rp-total"><span>TOTAL</span><span>676</span></div>
-
-                        <div class="rp-divider"></div>
-                        <div class="rp-thankyou">THANK YOU !!!</div>
-                        <div class="rp-footer" id="rp-footer"><?= htmlspecialchars($receipt['receipt_footer'] ?? 'Follow us for updates, promos, and new menu items.') ?></div>
-                    </div>
-
-                    <div class="profile-form-actions profile-form-actions--right" style="margin-top:18px;">
-                        <button type="submit" class="profile-btn-gold">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                                <polyline points="17 21 17 13 7 13 7 21"/>
-                                <polyline points="7 3 7 8 15 8"/>
-                            </svg>
-                            Save Receipt Settings
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- ── Appearance ── -->
-            <div class="profile-card">
-                <div class="profile-card__header">
-                    <div class="profile-card__header-left">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="5"/>
-                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                        </svg>
-                        <span>Appearance</span>
-                    </div>
-                </div>
-                <div class="receipt-toggles">
-                    <label class="receipt-toggle-row">
-                        <span class="receipt-toggle-label">Dark mode</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="dark-mode-toggle"
-                                   data-endpoint="{{ route('profile.update') }}"
-                                   <?= !empty($receipt['dark_mode']) ? 'checked' : '' ?>>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </label>
-                </div>
-            </div>
-
-            <?php endif; ?>
 
             <!-- ── Danger Zone ── -->
             <div class="profile-card profile-card--danger">

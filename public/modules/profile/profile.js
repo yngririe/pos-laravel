@@ -75,16 +75,6 @@
     });
   }
 
-  // ── SCROLL TO RECEIPT CARD ─────────────────────────────────────────────
-  const openReceiptBtn = document.getElementById("open-receipt-btn");
-  const receiptCard    = document.getElementById("receipt-card");
-
-  if (openReceiptBtn && receiptCard) {
-    openReceiptBtn.addEventListener("click", () => {
-      receiptCard.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
-
   // ── PASSWORD VISIBILITY TOGGLE ─────────────────────────────────────────
   document.querySelectorAll(".pw-toggle").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -217,86 +207,5 @@
     });
   }
 
-  // ── STORE LOGO UPLOAD ───────────────────────────────────────────────────
-  const logoUploadBtn = document.getElementById("logo-upload-btn");
-  const logoInput     = document.getElementById("logo-input");
-  const logoPreviewImg = document.getElementById("logo-preview-img");
-
-  if (logoUploadBtn && logoInput) {
-    logoUploadBtn.addEventListener("click", () => logoInput.click());
-    logoInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (logoPreviewImg) logoPreviewImg.src = ev.target.result;
-        const rpLogo = document.getElementById("rp-logo");
-        if (rpLogo) rpLogo.src = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-      const logoForm = document.getElementById("logo-form");
-      if (logoForm) logoForm.submit();
-    });
-  }
-
-  // ══════════════════════════════════════════════════════════════════════
-  //  RECEIPT PREVIEW — live update as user types
-  // ══════════════════════════════════════════════════════════════════════
-  const receiptForm = document.getElementById("receipt-form");
-  if (receiptForm) {
-
-    // Helper: bind an input to a preview element's text content
-    function bindText(inputName, previewId, prefix) {
-      const input   = receiptForm.querySelector(`[name="${inputName}"]`);
-      const preview = document.getElementById(previewId);
-      if (!input || !preview) return;
-      input.addEventListener("input", () => {
-        const val = input.value.trim();
-        preview.textContent = val ? (prefix || "") + val : "";
-        preview.classList.toggle("rp-placeholder", !val);
-      });
-    }
-
-    // Helper: bind a checkbox to show/hide a preview row
-    function bindToggle(inputName, previewId) {
-      const input   = receiptForm.querySelector(`[name="${inputName}"]`);
-      const preview = document.getElementById(previewId);
-      if (!input || !preview) return;
-      input.addEventListener("change", () => {
-        preview.style.display = input.checked ? "" : "none";
-      });
-    }
-
-    bindText("store_address",  "rp-address");
-    bindText("receipt_header", "rp-header");
-    bindText("receipt_footer", "rp-footer");
-
-    bindToggle("show_discount",   "rp-discount-row");
-    bindToggle("show_order_type", "rp-order-type-row");
-    bindToggle("show_payment_type", "rp-payment-type-row");
-    bindToggle("show_beeper",     "rp-beeper-row");
-  }
-
-  // ── DARK MODE (own section, instant save) ───────────────────────────────
-  const darkModeToggle = document.getElementById("dark-mode-toggle");
-  if (darkModeToggle) {
-    darkModeToggle.addEventListener("change", () => {
-      const isDark = darkModeToggle.checked;
-      document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
-
-      const endpoint = darkModeToggle.dataset.endpoint || window.location.pathname;
-      fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ action: "toggle_dark_mode", dark_mode: isDark ? "1" : "0" }),
-      })
-        .then((res) => res.json())
-        .catch(() => {
-          // Save failed — revert the toggle and theme so the UI doesn't lie about what's saved
-          darkModeToggle.checked = !isDark;
-          document.documentElement.setAttribute("data-theme", !isDark ? "dark" : "light");
-        });
-    });
-  }
 
 })();

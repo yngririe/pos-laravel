@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="<?= $dark_mode ? 'dark' : 'light' ?>">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -60,6 +60,10 @@
                     Profile
                 </a>
                 <?php if ($role === 'admin'): ?>
+                                <a href="{{ route('settings') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.1 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2V9.6h.4A1.7 1.7 0 0 0 4.1 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.5 4.1a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 9.9 2H14v.4a1.7 1.7 0 0 0 1.1 1.7 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.5 8.5a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.4V14h-.4a1.7 1.7 0 0 0-1.8 1z"/></svg>
+                    Settings
+                </a>
                 <a href="{{ route('cashiers.create') }}" class="dropdown-item">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="9" cy="7" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
@@ -93,6 +97,8 @@
             <button class="filter active" onclick="filterOrders('all', this)">All</button>
             <button class="filter" onclick="filterOrders('dine-in', this)">Dine in</button>
             <button class="filter" onclick="filterOrders('take-out', this)">Take out</button>
+            <button class="filter" onclick="filterOrders('delivery', this)">Delivery</button>
+            <button class="filter" onclick="filterOrders('pick-up', this)">Pick up</button>
         </div>
     </div>
 
@@ -107,7 +113,7 @@
             $ids    = explode('||', $o['item_ids']    ?? '');
             $time   = date('M d, g:i A', strtotime($o['created_at']));
             $type       = $o['order_type'];
-            $typeLabel  = $type === 'dine-in' ? 'Dine in' : 'Take out';
+            $typeLabel = ['dine-in'=>'Dine in','take-out'=>'Take out','delivery'=>'Delivery','pick-up'=>'Pick up'][$type] ?? ucfirst($type);
             $badgeClass = $type === 'dine-in' ? 'dine' : 'takeout';
             $orderLabel = $o['beeper_number'] ? '#'.$o['beeper_number'] : 'Order #'.str_pad($o['id'],4,'0',STR_PAD_LEFT);
 
@@ -140,7 +146,6 @@
                                 data-total="<?= $o['total'] ?>"
                                 data-subtotal="<?= $o['subtotal'] ?>"
                                 data-discount="<?= $o['discount'] ?>"
-                                data-gcash-ref="<?= htmlspecialchars($o['gcash_reference'] ?? '') ?>"
                                 data-items="<?= htmlspecialchars(json_encode($itemsJson), ENT_QUOTES) ?>"
                             >Edit</button>
                             <button class="void-order-btn"
@@ -168,12 +173,6 @@
                     <span>Payment</span>
                     <span><?= ucfirst($o['payment_method']) ?></span>
                 </div>
-                <?php if ($o['payment_method'] === 'gcash' && !empty($o['gcash_reference'])): ?>
-                <div class="extra-row">
-                    <span>Ref #</span>
-                    <span><?= htmlspecialchars($o['gcash_reference']) ?></span>
-                </div>
-                <?php endif; ?>
                 <div class="extra-row">
                     <span>Subtotal</span>
                     <span>Php <?= number_format($o['subtotal'], 0) ?></span>
@@ -216,6 +215,8 @@
         <div class="order-panel__type" id="epm-type-wrap">
             <button type="button" class="type-btn type-btn--active" data-type="dine-in">Dine in</button>
             <button type="button" class="type-btn" data-type="take-out">Take out</button>
+            <button type="button" class="type-btn" data-type="delivery">Delivery</button>
+            <button type="button" class="type-btn" data-type="pick-up">Pick up</button>
         </div>
         <input type="hidden" id="epm-type">
         <div class="order-panel__beeper">
@@ -234,11 +235,13 @@
         <div class="payment-summary">
             <p class="payment-summary__title">PAYMENT SUMMARY</p>
             <div class="payment-summary__row">
-                <span class="discount-label">Discount</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="epm-discount-toggle">
-                    <span class="toggle-slider"></span>
-                </label>
+                <label class="discount-label" for="epm-discount-select">Discount</label>
+                <select class="discount-select" id="epm-discount-select">
+                    <option value="none">No discount</option>
+                    <option value="20">20%</option>
+                    <option value="10">10%</option>
+                    <option value="minus10">− Php 10</option>
+                </select>
                 <span class="discount-value" id="epm-discount-val">Php 0</span>
             </div>
             <div class="payment-summary__row">
@@ -258,14 +261,6 @@
         <input type="hidden" id="epm-payment">
         <div class="amount-input-wrap" id="epm-amount-wrap">
             <input type="number" class="amount-input" id="epm-amount-input" placeholder="Amount Paid">
-        </div>
-        <div id="epm-gcash-section" style="display:none;">
-            <div class="epm-gcash-orig" id="epm-gcash-orig-wrap">
-                <div class="order-panel__beeper" style="opacity:.7;pointer-events:none;">
-                    <span class="beeper-label" style="white-space:nowrap;">Original Ref #</span>
-                    <input type="text" class="beeper-input" id="epm-gcash-orig" readonly placeholder="—">
-                </div>
-            </div>
         </div>
         <button type="button" class="place-order-btn" id="epm-total-btn" disabled>
             Place order – Php 0.00

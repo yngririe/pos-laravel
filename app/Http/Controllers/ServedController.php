@@ -12,8 +12,8 @@ class ServedController extends Controller
         $branch_id = Pos::branchId();
         $now       = Carbon::now(Pos::TZ);
 
-        // The served list resets every Monday at 5:00 AM (Manila time).
-        $lastReset = $now->copy()->startOfWeek(Carbon::MONDAY)->setTime(5, 0, 0);
+        // The served list resets every Monday at 3:00 PM (Manila time).
+        $lastReset = $now->copy()->startOfWeek(Carbon::MONDAY)->setTime(15, 0, 0);
         if ($now->lt($lastReset)) {
             $lastReset->subDays(7);
         }

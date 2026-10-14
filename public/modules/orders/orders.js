@@ -181,8 +181,7 @@
         items:           [],
         orderType:       'dine-in',
         paymentMethod:   'cash',
-        discountEnabled: false,
-        originalGcashRef: '',
+        discountType: 'none',
     };
     let originalTotal   = 0;
 
@@ -196,7 +195,7 @@
     const epmAddBtn       = document.getElementById('epm-add-btn');
     const epmMenuPicker   = document.getElementById('epm-menu-picker');
     const epmPickerGrid   = document.getElementById('epm-picker-grid');
-    const epmDiscToggle   = document.getElementById('epm-discount-toggle');
+    const epmDiscSelect   = document.getElementById('epm-discount-select');
     const epmDiscVal      = document.getElementById('epm-discount-val');
     const epmSubtotalVal  = document.getElementById('epm-subtotal-val');
     const epmTotalVal     = document.getElementById('epm-total-val');
@@ -207,24 +206,24 @@
     const epmTotalBtn     = document.getElementById('epm-total-btn');
     const epmSaveBtn      = document.getElementById('epm-save-btn');
     const epmOrderId      = document.getElementById('epm-order-id');
-    const epmGcashSection = document.getElementById('epm-gcash-section');
-    const epmGcashOrig    = document.getElementById('epm-gcash-orig');
 
     // ── HELPERS ────────────────────────────────────────────
     function getItemDiscount(price) {
-        if (typeof DISCOUNT_MAP !== 'undefined' && DISCOUNT_MAP[price] !== undefined) return DISCOUNT_MAP[price];
-        return Math.floor(price * 0.20);
+        if (epm.discountType === '20') return Math.round(price * 0.20);
+        if (epm.discountType === '10') return Math.round(price * 0.10);
+        if (epm.discountType === 'minus10') return Math.min(10, price);
+        return 0;
     }
 
     function calcEpmTotals() {
         let subtotal = 0;
         epm.items.forEach(item => { subtotal += item.price * item.qty; });
         let disc = 0;
-        if (epm.discountEnabled && epm.items.length > 0) {
+        if (epm.discountType !== 'none' && epm.items.length > 0) {
             const cheapest = epm.items.reduce((m, o) => o.price < m.price ? o : m, epm.items[0]);
             disc = getItemDiscount(cheapest.price);
         }
-        return { subtotal, disc, total: subtotal - disc };
+        return { subtotal: Math.round(subtotal), disc, total: Math.round(subtotal - disc) };
     }
 
     function escHtml(str) {
@@ -245,7 +244,7 @@
         } else {
             const cheapest = epm.items.reduce((m, o) => o.price < m.price ? o : m, epm.items[0]);
             epm.items.forEach(item => {
-                const disc     = (epm.discountEnabled && item.id === cheapest.id) ? getItemDiscount(item.price) : 0;
+                const disc     = (epm.discountType !== 'none' && item.id === cheapest.id) ? getItemDiscount(item.price) : 0;
                 const effPrice = item.price - disc;
                 const row      = document.createElement('div');
                 row.className  = 'order-item';
@@ -290,15 +289,14 @@
         const { subtotal, disc, total } = calcEpmTotals();
         epmSubtotalVal.textContent = `Php ${subtotal.toLocaleString()}`;
         epmDiscVal.textContent     = disc > 0 ? `−Php ${disc.toLocaleString()}` : 'Php 0';
-        epmTotalVal.textContent    = `Php ${total.toFixed(2)}`;
-        epmTotalBtn.textContent    = `Place order – Php ${total.toFixed(2)}`;
+        epmTotalVal.textContent    = `Php ${total.toLocaleString()}`;
+        epmTotalBtn.textContent    = `Place order – Php ${total.toLocaleString()}`;
         syncEpmPaymentUI();
     }
 
     function syncEpmPaymentUI() {
         const isGcash = epm.paymentMethod === 'gcash';
-        epmAmountWrap.style.display   = isGcash ? 'none' : '';
-        epmGcashSection.style.display = isGcash ? '' : 'none';
+        epmAmountWrap.style.display = isGcash ? 'none' : '';
     }
 
     // ── MENU PICKER ────────────────────────────────────────
@@ -347,10 +345,19 @@
         });
     });
 
-    // ── DISCOUNT TOGGLE ────────────────────────────────────
-    epmDiscToggle.addEventListener('change', () => {
-        epm.discountEnabled = epmDiscToggle.checked; renderEpmItems(); updateEpmTotals();
+    // ── DISCOUNT SELECTION ─────────────────────────────────
+    epmDiscSelect.addEventListener('change', () => {
+        epm.discountType = epmDiscSelect.value; renderEpmItems(); updateEpmTotals();
     });
+
+    function inferDiscountType(savedDiscount) {
+        if (!savedDiscount || epm.items.length === 0) return 'none';
+        const lowest = epm.items.reduce((m, o) => o.price < m.price ? o : m, epm.items[0]).price;
+        if (savedDiscount === Math.round(lowest * 0.20)) return '20';
+        if (savedDiscount === Math.round(lowest * 0.10)) return '10';
+        if (savedDiscount === Math.min(10, lowest)) return 'minus10';
+        return 'none';
+    }
 
     // ── OPEN EDIT ──────────────────────────────────────────
     document.querySelectorAll('.edit-order-btn').forEach(btn => {
@@ -360,8 +367,7 @@
             epm.orderId           = this.dataset.id;
             epm.orderType         = this.dataset.type;
             epm.paymentMethod     = this.dataset.payment;
-            epm.discountEnabled   = parseFloat(this.dataset.discount) > 0;
-            epm.originalGcashRef  = this.dataset.gcashRef || '';
+            epm.discountType      = inferDiscountType(parseFloat(this.dataset.discount) || 0);
             originalTotal         = parseFloat(this.dataset.total) || 0;
 
             try { epm.items = JSON.parse(this.dataset.items) || []; } catch(e) { epm.items = []; }
@@ -371,13 +377,12 @@
             epmPaymentInput.value = epm.paymentMethod;
             epmBeeper.value       = this.dataset.beeper;
             epmAmountInput.value  = '';
-            if (epmGcashOrig) epmGcashOrig.value = epm.originalGcashRef || '—';
 
             epmTypeWrap.querySelectorAll('.type-btn').forEach(b =>
                 b.classList.toggle('type-btn--active', b.dataset.type === epm.orderType));
             epmPaymentWrap.querySelectorAll('.payment-btn').forEach(b =>
                 b.classList.toggle('payment-btn--active', b.dataset.method === epm.paymentMethod));
-            epmDiscToggle.checked = epm.discountEnabled;
+            epmDiscSelect.value = epm.discountType;
 
             renderEpmItems();
             syncEpmPaymentUI();
@@ -396,7 +401,7 @@
     editModal.addEventListener('click', function (e) { if (e.target === this) closeEditModal(); });
 
     // ── SUBMIT SAVE ────────────────────────────────────────
-    function submitEditOrder({ subtotal, disc, total, beeper, gcashExtraRef, gcashExtraAmount, refundAmount }) {
+    function submitEditOrder({ subtotal, disc, total, beeper }) {
         const amountPaid = epm.paymentMethod === 'cash'
             ? (parseFloat(epmAmountInput.value) || total)
             : total;
@@ -409,10 +414,8 @@
             amount_paid:         amountPaid,
             subtotal,
             discount:            disc,
+            discount_type:       epm.discountType,
             total,
-            gcash_ref:           gcashExtraRef  || null,
-            gcash_extra_amount:  gcashExtraAmount || 0,
-            refund_amount:       refundAmount    || 0,
             items: epm.items.map(o => ({ id: o.id, name: o.name, price: o.price, qty: o.qty })),
         };
 
@@ -435,139 +438,16 @@
         });
     }
 
-    // ── GCASH DIFF MODAL ───────────────────────────────────
-    function showGcashDiffModal(newTotal, diff, origTotal, origRef, onConfirm) {
-        if (document.getElementById('gcash-diff-overlay')) return;
-        const isAddition = diff > 0;
-        const absDiff    = Math.abs(diff).toFixed(2);
-
-        const overlay = document.createElement('div');
-        overlay.id = 'gcash-diff-overlay';
-        overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.45);
-            display:flex;align-items:center;justify-content:center;z-index:99999;
-            backdrop-filter:blur(3px);font-family:'Poppins',sans-serif;padding:20px;`;
-        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-
-        overlay.innerHTML = `
-            <div style="background:#FEFCE0;border-radius:24px;padding:28px 30px;
-                width:420px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.18);">
-
-                <div style="text-align:center;margin-bottom:20px;">
-                    <div style="width:52px;height:52px;border-radius:50%;background:rgba(0,112,192,0.1);
-                        display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0070C0" stroke-width="2.2">
-                            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
-                        </svg>
-                    </div>
-                    <h3 style="font-size:17px;font-weight:700;color:#1C3924;margin-bottom:8px;">
-                        GCash ${isAddition ? 'Additional Payment' : 'Refund'}
-                    </h3>
-                    <div style="font-size:13px;color:#5A6B5E;line-height:1.7;">
-                        Original ref: <strong>${escHtml(origRef || '—')}</strong><br>
-                        Original total: <strong>₱${origTotal.toLocaleString()}</strong><br>
-                        New total: <strong>₱${parseFloat(newTotal).toFixed(2)}</strong><br>
-                        ${isAddition
-                            ? `<span style="color:#0070C0;font-weight:600;">Additional: ₱${absDiff}</span>`
-                            : `<span style="color:#C0392B;font-weight:600;">Refund: ₱${absDiff}</span>`
-                        }
-                    </div>
-                </div>
-
-                ${isAddition ? `
-                <div style="margin-bottom:16px;">
-                    <label style="font-size:12.5px;font-weight:600;color:#1C3924;display:block;margin-bottom:6px;">
-                        GCash Ref # for additional ₱${absDiff}
-                    </label>
-                    <input id="gcash-extra-ref-input" type="text" placeholder="Enter 13-digit reference number"
-                    maxlength="13" inputmode="numeric"
-                    style="width:100%;padding:10px 14px;border-radius:12px;border:1.5px solid #D8C36F;
-                    font-family:'Poppins',sans-serif;font-size:13.5px;color:#1C3924;
-                    background:#fff;outline:none;box-sizing:border-box;">
-                </div>` : `
-                <div style="margin-bottom:16px;background:rgba(192,57,43,0.06);border-radius:12px;padding:14px 16px;">
-                    <p style="font-size:13px;font-weight:600;color:#C0392B;margin:0;">
-                        💸 Return ₱${absDiff} cash to the customer.
-                    </p>
-                    <p style="font-size:12px;color:#5A6B5E;margin:6px 0 0;">
-                        The refund will be recorded in the system.
-                    </p>
-                </div>`}
-
-                <div style="display:flex;gap:10px;">
-                    <button onclick="document.getElementById('gcash-diff-overlay').remove()"
-                        style="flex:1;padding:11px;border-radius:999px;border:1.5px solid #D0C9A8;
-                        background:#fff;color:#1C3924;font-family:'Poppins',sans-serif;
-                        font-size:13px;font-weight:600;cursor:pointer;">
-                        Cancel
-                    </button>
-                    <button id="gcash-diff-confirm"
-                        style="flex:1;padding:11px;border-radius:999px;border:none;
-                        background:${isAddition ? '#0070C0' : '#C0392B'};color:#fff;
-                        font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
-                        ${isAddition ? 'Confirm & Save' : 'Refund & Save'}
-                    </button>
-                </div>
-            </div>`;
-
-        document.body.appendChild(overlay);
-
-        const extraRefInput = document.getElementById('gcash-extra-ref-input');
-        if (extraRefInput) {
-            extraRefInput.addEventListener('input', () => {
-                extraRefInput.value = extraRefInput.value.replace(/\D/g, '').slice(0, 13);
-            });
-        }
-
-        document.getElementById('gcash-diff-confirm').addEventListener('click', () => {
-            const refInput = document.getElementById('gcash-extra-ref-input');
-            if (refInput) {
-                refInput.value = refInput.value.replace(/\D/g, '').slice(0, 13);
-            }
-            if (isAddition && refInput && refInput.value.replace(/\D/g,'').length !== 13) {
-                refInput.style.borderColor = '#C0392B';
-                refInput.focus();
-                let errMsg = document.getElementById('gcash-extra-ref-error');
-                if (!errMsg) {
-                    errMsg = document.createElement('p');
-                    errMsg.id = 'gcash-extra-ref-error';
-                    errMsg.style.cssText = 'color:#C0392B;font-size:12px;margin:4px 0 0;font-family:Poppins,sans-serif;';
-                    refInput.parentNode.appendChild(errMsg);
-                }
-                const cur = refInput.value.replace(/\D/g,'').length;
-                errMsg.textContent = cur === 0 ? 'GCash reference number is required.' : `${cur}/13 digits — must be exactly 13.`;
-                return;
-            }
-            const extraRef    = refInput ? refInput.value.trim() : null;
-            const extraAmount = isAddition ? parseFloat(absDiff) : 0;
-            const refundAmt   = isAddition ? 0 : parseFloat(absDiff);
-            overlay.remove();
-            onConfirm(extraRef, extraAmount, refundAmt);
-        });
-    }
-
     // ── SAVE BUTTON ────────────────────────────────────────
     epmSaveBtn.addEventListener('click', function () {
         const { subtotal, disc, total } = calcEpmTotals();
         const beeper = parseInt(epmBeeper.value) || 0;
-
-        if (!beeper || beeper < 1) {
+        if (!beeper || beeper < 1 || beeper > 16) {
             epmBeeper.focus(); epmBeeper.style.borderColor = '#d9534f';
             setTimeout(() => { epmBeeper.style.borderColor = ''; }, 1500); return;
         }
         if (epm.items.length === 0) { alert('Please add at least one item.'); return; }
-
-        const isGcash = epm.paymentMethod === 'gcash';
-        const diff    = total - originalTotal;
-
-        if (isGcash && Math.abs(diff) >= 1) {
-            closeEditModal();
-            showGcashDiffModal(total, diff, originalTotal, epm.originalGcashRef, (extraRef, extraAmount, refundAmt) => {
-                submitEditOrder({ subtotal, disc, total, beeper, gcashExtraRef: extraRef, gcashExtraAmount: extraAmount, refundAmount: refundAmt });
-            });
-            return;
-        }
-
-        submitEditOrder({ subtotal, disc, total, beeper, gcashExtraRef: null, gcashExtraAmount: 0, refundAmount: 0 });
+        submitEditOrder({ subtotal, disc, total, beeper });
     });
 
     // ══════════════════════════════════════════════════════
