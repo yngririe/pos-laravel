@@ -1,0 +1,456 @@
+/* =============================================
+   TWIST & ROLL POS — served.css
+   ============================================= */
+
+.served-page {
+    padding: clamp(14px, 2vw, 22px) clamp(16px, 2.4vw, 28px);
+    background: var(--cream);
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.served-page::-webkit-scrollbar { width: 5px; }
+.served-page::-webkit-scrollbar-track { background: transparent; }
+.served-page::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 4px; }
+
+.served-title {
+    font-size: clamp(22px, 2.14vw, 35.4px);
+    font-weight: 700;
+    color: var(--green-100);
+    margin-bottom: 20px;
+}
+
+/* ── CONTROLS ─────────────────────────────── */
+.served-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.served-search-wrapper {
+    position: relative;
+    width: min(340px, 100%);
+    flex: 1 1 260px;
+}
+
+.served-search {
+    width: 100%;
+    height: clamp(36px, 3.4vw, 42px);
+    padding: 0 18px 0 42px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border-dark);
+    background: transparent;
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(12.5px, 1vw, 13.5px);
+    color: var(--green-100);
+    outline: none;
+    transition: border-color 0.18s;
+}
+
+.served-search:focus { border-color: var(--green-100); }
+.served-search::placeholder { color: var(--text-light); }
+
+.served-search-wrapper svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+    pointer-events: none;
+}
+
+.served-filters {
+    display: flex;
+    gap: 10px;
+}
+
+.served-filter {
+    padding: clamp(6px, 0.6vw, 8px) clamp(14px, 1.4vw, 20px);
+    border-radius: 999px;
+    border: 1.5px solid var(--border-dark);
+    background: transparent;
+    color: var(--green-100);
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(12px, 0.95vw, 13.5px);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+}
+
+.served-filter.active {
+    background: var(--green-100);
+    color: var(--white);
+    border-color: var(--green-100);
+}
+
+.served-filter:hover:not(.active) {
+    border-color: var(--green-100);
+}
+
+/* ── GRID ─────────────────────────────────── */
+.served-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(clamp(220px, 21vw, 280px), 1fr));
+    gap: clamp(10px, 1.2vw, 16px);
+    align-items: stretch;
+}
+
+/* ── EMPTY STATE ──────────────────────────── */
+.served-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(40px, 5vw, 80px) 0;
+    gap: 14px;
+    color: var(--text-light);
+}
+
+.served-empty svg { opacity: 0.4; }
+
+.served-empty p {
+    font-size: clamp(11px, 1.07vw, 17.7px);
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* ── CARD ─────────────────────────────────── */
+.served-card {
+    background: var(--cream);
+    border-radius: clamp(16px, 1.6vw, 22px);
+    border: 1.5px solid var(--gold-100);
+    box-shadow: 0px 4px 8.9px 0px rgba(216, 195, 111, 0.25);
+    padding: clamp(12px, 1.3vw, 18px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+    transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.served-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0px 8px 16px 0px rgba(216, 195, 111, 0.35);
+}
+
+/* TOP BADGES */
+.served-card__top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.served-status {
+    background: var(--green-100);
+    color: #4cff88;
+    padding: clamp(3px, 0.4vw, 4px) clamp(8px, 1vw, 12px);
+    border-radius: 999px;
+    font-size: clamp(9px, 0.86vw, 14.2px);
+    font-weight: 600;
+}
+
+.served-type-badge {
+    padding: clamp(3px, 0.4vw, 4px) clamp(8px, 1vw, 12px);
+    border-radius: 999px;
+    font-size: clamp(9px, 0.86vw, 14.2px);
+    font-weight: 600;
+}
+
+.served-type-badge.dine {
+    background: var(--gold-20);
+    color: var(--green-100);
+    border: 1px solid var(--gold-100);
+}
+
+.served-type-badge.takeout {
+    background: var(--green-100);
+    color: var(--cream);
+}
+
+.served-beeper {
+    padding: clamp(3px, 0.4vw, 4px) clamp(8px, 1vw, 12px);
+    border-radius: 999px;
+    font-size: clamp(9px, 0.86vw, 14.2px);
+    font-weight: 600;
+    background: var(--gold-20);
+    color: var(--green-100);
+    border: 1px solid var(--gold-100);
+}
+
+/* ITEMS */
+.served-card__items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.served-card__row {
+    display: flex;
+    justify-content: space-between;
+    font-size: clamp(10px, 0.96vw, 15.9px);
+    font-weight: 600;
+    color: var(--green-100);
+}
+
+.served-card__row span:last-child {
+    color: var(--gold-100);
+}
+
+/* DIVIDER */
+.served-card__divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 0;
+}
+
+/* META */
+.served-card__meta { display: flex; flex-direction: column; gap: 3px; }
+
+.served-meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: clamp(9px, 0.86vw, 14.2px);
+    color: var(--text-muted);
+}
+
+.served-meta-row span:last-child {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.served-discount { color: var(--red) !important; font-weight: 600 !important; }
+
+/* TOTAL */
+.served-card__total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.served-card__total strong {
+    font-size: clamp(10px, 1.0vw, 16.5px);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.served-total-price {
+    font-size: clamp(11px, 1.07vw, 17.7px);
+    font-weight: 700;
+    color: var(--gold-100);
+}
+
+/* FOOTER TIMESTAMPS */
+.served-card__footer {
+    font-size: clamp(9px, 0.79vw, 13px);
+    color: var(--text-light);
+    margin-top: 2px;
+}
+
+/* ── PAGINATION ───────────────────────────── */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 32px;
+    padding-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.pagination__btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-dark);
+    background: transparent;
+    color: var(--green-100);
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(10px, 0.96vw, 15.9px);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pagination__btn:hover:not(:disabled) {
+    border-color: var(--green-100);
+    background: var(--green-5);
+}
+
+.pagination__btn.active {
+    background: var(--green-100);
+    color: var(--white);
+    border-color: var(--green-100);
+}
+
+.pagination__btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pagination__arrow {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-dark);
+    background: transparent;
+    color: var(--green-100);
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(12px, 1.14vw, 18.9px);
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pagination__arrow:hover:not(:disabled) {
+    border-color: var(--green-100);
+    background: var(--green-5);
+}
+
+.pagination__arrow:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ── DAY FILTER ADDITIONS ─────────────────────
+   Append these rules to the bottom of served.css
+   ─────────────────────────────────────────────── */
+
+/* Divider dot between type filters and day filters */
+.served-filter-divider {
+    display: flex;
+    align-items: center;
+    color: var(--border-dark);
+    font-size: clamp(13px, 1.29vw, 21.2px);
+    line-height: 1;
+    padding: 0 2px;
+    user-select: none;
+}
+
+/* Day filter buttons — slightly smaller than type buttons */
+.served-filter--day {
+    padding: clamp(6px, 0.6vw, 8px) clamp(11px, 1.1vw, 14px);
+    font-size: clamp(9px, 0.89vw, 14.8px);
+}
+
+/* Active state for day buttons — gold instead of green
+   so it's visually distinct from the type filters      */
+.served-filter--day.active {
+    background: var(--gold-100);
+    color: var(--white);
+    border-color: var(--gold-100);
+}
+
+.served-filter--day:hover:not(.active) {
+    border-color: var(--gold-100);
+    color: var(--gold-100);
+}
+
+/* Allow the filters row to wrap on smaller screens */
+.served-filters {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ── DAY DROPDOWN ─────────────────────────────────────────────────────── */
+.served-day-dropdown {
+    position: relative;
+}
+
+.served-day-dropdown__btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: clamp(6px, 0.6vw, 8px) clamp(11px, 1.1vw, 14px);
+    border-radius: 999px;
+    border: 1.5px solid var(--border-dark);
+    background: transparent;
+    color: var(--green-100);
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(9px, 0.93vw, 15.3px);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+}
+
+.served-day-dropdown__btn:hover {
+    border-color: var(--green-100);
+}
+
+.served-day-dropdown__btn--active {
+    background: var(--gold-100);
+    color: var(--white);
+    border-color: var(--gold-100);
+}
+
+.served-day-dropdown__arrow {
+    font-size: clamp(9px, 0.71vw, 11.8px);
+    color: inherit;
+}
+
+.served-day-dropdown__menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    background: var(--white);
+    border: 1.5px solid var(--border-dark);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+    z-index: 100;
+    min-width: 160px;
+    overflow: hidden;
+    padding: 6px;
+}
+
+.served-day-dropdown__menu.open {
+    display: block;
+}
+
+.served-day-option {
+    padding: clamp(7px, 0.7vw, 9px) clamp(11px, 1.1vw, 14px);
+    font-family: 'Poppins', sans-serif;
+    font-size: clamp(9px, 0.93vw, 15.3px);
+    color: var(--green-100);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+.served-day-option:hover {
+    background: var(--gold-20);
+}
+
+.served-day-option--active {
+    background: var(--gold-20);
+    font-weight: 600;
+    color: var(--green-100);
+}
+
+/* ── RESPONSIVE ───────────────────────────────
+   Grid/typography above is already fluid via clamp()
+   and auto-fill — these just handle layout shape,
+   not sizing.
+   ============================================= */
+@media (max-width: 860px) {
+    .served-controls { flex-direction: column; align-items: flex-start; }
+    .served-search-wrapper { width: 100%; }
+}
+
+@media (max-width: 480px) {
+    .served-grid { grid-template-columns: 1fr; }
+}

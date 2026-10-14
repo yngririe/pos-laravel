@@ -1,0 +1,198 @@
+@php($error = session('login_error'))
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twist & Roll — Login</title>
+
+ <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#1C3924">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TNR POS">
+    <link rel="apple-touch-icon" href="{{ asset('assets/images/icon-192.png') }}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: #FEFCE0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-card {
+    background: #FEFCE0;
+    border: 1px solid #e0ddce;
+    border-radius: 40px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow:
+        0 10px 25px rgba(0,0,0,0.05),
+        0 0 50px rgba(216,195,111,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+}
+
+.login-logo { max-width: 180px; height: auto; }
+
+.login-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: stretch;
+}
+
+.forgot-link-wrap { text-align: right; width: 100%; margin-top: -6px; }
+.forgot-link { font-size: 12px; color: #7A7A5A; text-decoration: none; }
+.forgot-link:hover { color: #C8A84B; text-decoration: underline; }
+
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+label { font-size: 13px; color: #7A7A5A; }
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #dbd8c8;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #2C2C1A;
+    background: #F3F2D7;
+    outline: none;
+}
+
+input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px #F3F2D7 inset !important;
+    -webkit-text-fill-color: #2C2C1A !important;
+}
+
+input:focus { border-color: #C8A84B; }
+
+.password-wrapper { position: relative; width: 100%; }
+.password-wrapper input { padding-right: 40px; }
+.toggle-password {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    color: #7A7A5A;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    background: #1C3924;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.login-btn:hover { background: #245a42; }
+
+.error-msg {
+    font-size: 13px;
+    color: #C0392B;
+    background: #fde8e8;
+    border-radius: 6px;
+    padding: 8px 12px;
+    text-align: center;
+    width: 100%;
+}
+
+.signup-link {
+    font-size: 13px;
+    color: #7A7A5A;
+    text-align: center;
+}
+.signup-link a {
+    color: #C8A84B;
+    text-decoration: none;
+    font-weight: 600;
+}
+.signup-link a:hover { text-decoration: underline; }
+</style>
+    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+</head>
+
+<body>
+
+<div class="login-card">
+    <img src="{{ asset('assets/images/logo.png') }}" class="login-logo" alt="Twist & Roll">
+
+    <?php if ($error): ?>
+        <p class="error-msg"><?= htmlspecialchars($error) ?></p>
+    <?php endif; ?>
+
+    <form class="login-form" method="POST" action="{{ route('login.attempt') }}">
+@csrf
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" name="username" required>
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <div class="password-wrapper">
+                <input type="password" id="password" name="password" required>
+                <button type="button" class="toggle-password" onclick="togglePassword()">
+                    <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="#7A7A5A" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="#7A7A5A" stroke-width="2" viewBox="0 0 24 24" style="display:none;">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.77 21.77 0 0 1 5.06-5.94"/>
+                        <path d="M1 1l22 22"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="forgot-link-wrap">
+            <a href="{{ route('password.request') }}" class="forgot-link">Forgot Password?</a>
+        </div>
+
+        <button type="submit" class="login-btn">Login</button>
+    </form>
+
+
+</div>
+
+<script>
+function togglePassword() {
+    const password  = document.getElementById("password");
+    const eyeOpen   = document.getElementById("eyeOpen");
+    const eyeClosed = document.getElementById("eyeClosed");
+    if (password.type === "password") {
+        password.type = "text";
+        eyeOpen.style.display   = "none";
+        eyeClosed.style.display = "inline";
+    } else {
+        password.type = "password";
+        eyeOpen.style.display   = "inline";
+        eyeClosed.style.display = "none";
+    }
+}
+</script>
+
+<script src="{{ asset('assets/js/pwa_register.js') }}"></script>
+
+</body>
+</html>
