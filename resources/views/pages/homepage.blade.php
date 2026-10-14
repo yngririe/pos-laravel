@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="<?= $dark_mode ? 'dark' : 'light' ?>"><head>
+<html lang="en" data-theme="light"><head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -58,6 +58,10 @@
                     Profile
                 </a>
                 <?php if ($role === 'admin'): ?>
+                                <a href="{{ route('settings') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.1 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2V9.6h.4A1.7 1.7 0 0 0 4.1 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.5 4.1a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 9.9 2H14v.4a1.7 1.7 0 0 0 1.1 1.7 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.5 8.5a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.4V14h-.4a1.7 1.7 0 0 0-1.8 1z"/></svg>
+                    Settings
+                </a>
                 <a href="{{ route('cashiers.create') }}" class="dropdown-item">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="9" cy="7" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
@@ -98,7 +102,7 @@
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════
-         SCREEN 2 — Dine in / Take out
+         SCREEN 2 — Order type
          ═══════════════════════════════════════════════════════════ -->
     <section class="screen screen--type" id="screen-type">
         <div class="start-hero">
@@ -119,6 +123,20 @@
                 </span>
                 <span class="order-type-card__title">Take Out</span>
                 <span class="order-type-card__sub">Packaged fresh for the road</span>
+            </button>
+            <button type="button" class="order-type-card" id="pick-delivery" data-type="delivery">
+                <span class="order-type-card__icon-wrap order-type-card__svg-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h11v10H3z"/><path d="M14 10h3l4 4v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                </span>
+                <span class="order-type-card__title">Delivery</span>
+                <span class="order-type-card__sub">Send the order to the customer</span>
+            </button>
+            <button type="button" class="order-type-card" id="pick-pickup" data-type="pick-up">
+                <span class="order-type-card__icon-wrap order-type-card__svg-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/><path d="M8 13h8"/></svg>
+                </span>
+                <span class="order-type-card__title">Pick Up</span>
+                <span class="order-type-card__sub">Prepare for customer collection</span>
             </button>
         </div>
     </section>
@@ -193,11 +211,13 @@
         <div class="payment-summary">
             <p class="payment-summary__title">PAYMENT SUMMARY</p>
             <div class="payment-summary__row">
-                <span class="discount-label">Discount</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="discount-toggle">
-                    <span class="toggle-slider"></span>
-                </label>
+                <label class="discount-label" for="discount-select">Discount</label>
+                <select class="discount-select" id="discount-select">
+                    <option value="none">No discount</option>
+                    <option value="20">20%</option>
+                    <option value="10">10%</option>
+                    <option value="minus10">− Php 10</option>
+                </select>
                 <span class="discount-value" id="discount-value">Php 0</span>
             </div>
             <div class="payment-summary__row">
@@ -218,14 +238,6 @@
 
         <div class="amount-input-wrap" id="amount-wrap">
             <input type="number" class="amount-input" id="amount-input" placeholder="Php 0.00" step="1" min="0">
-        </div>
-
-        <div id="gcash-wrap" style="display:none;">
-            <div class="order-panel__beeper" id="gcash-ref-wrap">
-                <label class="beeper-label" for="gcash-ref" style="white-space:nowrap;">Ref #</label>
-                <input type="text" class="beeper-input" id="gcash-ref" placeholder="GCash reference number (13 digits)" maxlength="13" minlength="13" inputmode="numeric" pattern="\d{13}">
-            </div>
-            <p class="beeper-error-msg" id="gcash-ref-error">GCash reference number is required.</p>
         </div>
 
         <div class="change-display" id="change-display" style="display:none;">

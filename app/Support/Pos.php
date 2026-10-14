@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
  *
  * TIME: every timestamp is stored in UTC (created_at, served_at, reset tokens).
  * Anything shown to the user or bucketed into a "business day" is converted to
- * Asia/Manila. The business day starts at 5:00 AM Manila time.
+ * Asia/Manila. The business day starts at 3:00 PM Manila time, matching the 3:00 PM–2:00 AM operating window.
  */
 class Pos
 {
@@ -20,17 +20,17 @@ class Pos
     // ── Business-day SQL fragments (column is stored in UTC) ───────────────
     public static function bizDate(string $col = 'created_at'): string
     {
-        return "DATE(CONVERT_TZ($col,'+00:00','+08:00') - INTERVAL 5 HOUR)";
+        return "DATE(CONVERT_TZ($col,'+00:00','+08:00') - INTERVAL 15 HOUR)";
     }
 
     public static function bizYear(string $col = 'created_at'): string
     {
-        return "YEAR(CONVERT_TZ($col,'+00:00','+08:00') - INTERVAL 5 HOUR)";
+        return "YEAR(CONVERT_TZ($col,'+00:00','+08:00') - INTERVAL 15 HOUR)";
     }
 
     public static function bizMonth(string $col = 'created_at'): string
     {
-        return "MONTH(CONVERT_TZ($col,'+00:00','+08:00') - INTERVAL 5 HOUR)";
+        return "MONTH(CONVERT_TZ($col,'+00:00','+08:00') - INTERVAL 15 HOUR)";
     }
 
     // ── Branch / user context ──────────────────────────────────────────────
@@ -63,7 +63,6 @@ class Pos
             'role'         => $user->role,
             'my_user_id'   => $user->id,
             'nav_user'     => ['avatar' => $user->avatar],
-            'dark_mode'    => (int) (DB::table('receipt_settings')->where('id', 1)->value('dark_mode') ?: 0),
         ];
     }
 
@@ -74,10 +73,10 @@ class Pos
             // DECIMAL arrives as "229.00"; cast so it matches the DISCOUNT_MAP keys.
             $row['price'] = (int) round($row['price']);
             return $row;
-        }, self::all('SELECT id, name, price, category, image FROM menu_items ORDER BY id'));
+        }, self::all('SELECT id, name, price, category, image FROM menu_items WHERE is_active = 1 ORDER BY id'));
 
         $discountMap = [];
-        foreach (self::all('SELECT price, discounted_price FROM menu_items WHERE discounted_price IS NOT NULL') as $row) {
+        foreach (self::all('SELECT price, discounted_price FROM menu_items WHERE is_active = 1 AND discounted_price IS NOT NULL') as $row) {
             $discountMap[(int) round($row['price'])] = (int) round($row['price'] - $row['discounted_price']);
         }
 

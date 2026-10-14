@@ -1008,3 +1008,84 @@
     border-color: rgba(227, 204, 130, 0.25);
     border-top-color: var(--green-100);
 }
+/* ── DAILY CASH / SALES ARCHIVE ───────────────────────────────────────── */
+.sidebar-sales-icon { width: 16px; height: 16px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background:#1C3924; color:#fff; font-size:10px; font-weight:700; flex:0 0 auto; }
+.finance-overview__header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:14px; }
+.finance-overview__header .overview-label { margin-bottom:2px; }
+.finance-date { color:var(--text-muted); font-size:12px; }
+.finance-saved { background:rgba(28,57,36,.1); color:#1C3924; border:1px solid rgba(28,57,36,.18); padding:6px 11px; border-radius:999px; font-size:12px; font-weight:600; }
+.finance-grid { display:grid; grid-template-columns:minmax(260px,1.2fr) repeat(2,minmax(220px,1fr)); gap:14px; }
+.finance-card { background:#FFFDEC; border:1px solid rgba(216,195,111,.28); border-radius:12px; padding:18px; min-width:0; }
+.finance-card--editable { display:grid; grid-template-columns:110px 1fr; gap:9px 12px; align-items:center; }
+.finance-card--editable label { color:#1C3924; font-size:13px; font-weight:600; }
+.finance-card--editable .finance-help, .finance-card--editable .finance-save-btn { grid-column:1 / -1; }
+.expense-label { margin-top:2px; }
+.money-input { display:flex; align-items:center; background:#fff; border:1.5px solid #DDD3AF; border-radius:10px; min-height:43px; overflow:hidden; }
+.money-input:focus-within { border-color:#1C3924; box-shadow:0 0 0 3px rgba(28,57,36,.08); }
+.money-input span { padding-left:12px; color:#1C3924; font-weight:700; }
+.money-input input { width:100%; min-width:0; border:0; outline:0; background:transparent; padding:9px 12px 9px 5px; font:600 16px Poppins,sans-serif; color:#1C3924; }
+.finance-help { color:#7A806F; font-size:11px; }
+.finance-save-btn { justify-self:start; border:0; background:#1C3924; color:#fff; border-radius:9px; padding:9px 16px; font:600 12px Poppins,sans-serif; cursor:pointer; }
+.finance-save-btn:hover { filter:brightness(1.08); }
+.finance-card__label { display:block; color:#657064; font-size:13px; font-weight:600; margin-bottom:7px; }
+.finance-card__total { display:block; color:#1C3924; font-size:clamp(24px,2.1vw,34px); line-height:1.15; margin-bottom:14px; }
+.sales-split { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:11px; }
+.sales-split span { background:#fff; border:1px solid rgba(28,57,36,.1); border-radius:9px; padding:9px 10px; color:#657064; font-size:11px; }
+.sales-split b { display:block; color:#1C3924; font-size:14px; margin-top:2px; }
+.finance-card--total { background:#F2F7F1; border-color:rgba(28,57,36,.18); }
+.finance-formula { color:#1C3924; font-size:12px; font-weight:600; margin-bottom:4px; }
+.finance-breakdown { color:#748074; font-size:11px; }
+.finance-error { margin-top:10px; color:#9C2F2F; font-size:12px; font-weight:500; }
+.section-stat__val--green,.money-green { color:#1C3924 !important; }
+.money-strong { font-weight:700; }
+.sales-archive-table { min-width:820px; }
+.sales-summary-stats .section-stat { min-width:0; }
+@media (max-width: 1100px) { .finance-grid { grid-template-columns:1fr 1fr; } .finance-card--editable { grid-row:span 2; } }
+@media (max-width: 760px) { .finance-grid { grid-template-columns:1fr; } .finance-card--editable { grid-row:auto; } .finance-card--editable { grid-template-columns:95px 1fr; } }
+
+/* Multiple daily expenses */
+.finance-card--cash-entry { display:block; }
+.finance-entry-form { display:grid; grid-template-columns:110px 1fr; gap:9px 12px; align-items:center; }
+.finance-entry-form .finance-help, .finance-entry-form .finance-save-btn { grid-column:1 / -1; }
+.expense-divider { height:1px; background:rgba(28,57,36,.12); margin:16px 0; }
+.expense-total-row { display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:12px; border-top:1px solid rgba(28,57,36,.12); color:#1C3924; font-size:13px; }
+.expense-total-row strong { font-size:18px; }
+.expense-list { margin-top:8px; max-height:110px; overflow:auto; padding-right:4px; }
+.expense-list__item { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid rgba(28,57,36,.08); color:#657064; font-size:12px; }
+.expense-list__item b { color:#1C3924; }
+@media (max-width:760px) { .finance-entry-form { grid-template-columns:95px 1fr; } }
+
+/* Sales archive day details */
+.sales-day-row { cursor: pointer; transition: background-color .16s ease; }
+.sales-day-row:hover, .sales-day-row:focus-visible { background: rgba(20, 83, 45, .055); outline: none; }
+.sales-day-link { font-weight: 700; color: #14532d; text-decoration: underline; text-decoration-color: rgba(20,83,45,.28); text-underline-offset: 3px; }
+.sales-detail-modal { position: fixed; inset: 0; z-index: 1200; display: none; align-items: center; justify-content: center; padding: 24px; }
+.sales-detail-modal.is-open { display: flex; }
+.sales-detail-modal__backdrop { position: absolute; inset: 0; background: rgba(17,24,39,.48); backdrop-filter: blur(2px); }
+.sales-detail-modal__dialog { position: relative; width: min(680px, 100%); max-height: min(760px, calc(100vh - 48px)); overflow: hidden; display: flex; flex-direction: column; background: #fff; border-radius: 18px; box-shadow: 0 24px 70px rgba(0,0,0,.2); }
+.sales-detail-modal__header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 22px 24px 18px; border-bottom: 1px solid #e5e7eb; }
+.sales-detail-modal__eyebrow { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin-bottom: 4px; }
+.sales-detail-modal__header h3 { margin: 0; font-size: 22px; color: #111827; }
+.sales-detail-modal__close { width: 40px; height: 40px; border: 0; border-radius: 10px; background: #f3f4f6; color: #374151; font-size: 28px; line-height: 1; cursor: pointer; }
+.sales-detail-modal__close:hover, .sales-detail-modal__close:focus-visible { background: #e5e7eb; outline: 2px solid #14532d; outline-offset: 2px; }
+.sales-detail-modal__body { padding: 22px 24px 26px; overflow-y: auto; }
+.sales-detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.sales-detail-grid > div { padding: 14px 16px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fafafa; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.sales-detail-grid span { font-size: 13px; color: #6b7280; }
+.sales-detail-grid strong { font-size: 16px; color: #111827; }
+.sales-detail-grid .money-green, .sales-detail-grid__total strong { color: #14532d; }
+.sales-detail-grid__total { grid-column: 1 / -1; background: #f0fdf4 !important; border-color: #bbf7d0 !important; }
+.sales-detail-grid__total strong { font-size: 20px; }
+.sales-detail-formula { margin: 12px 0 20px; padding: 11px 14px; border-radius: 10px; background: #f9fafb; color: #4b5563; font-size: 13px; text-align: right; }
+.sales-detail-expenses__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.sales-detail-expenses__head h4 { margin: 0; font-size: 17px; color: #111827; }
+.sales-detail-expenses__head span { font-size: 12px; color: #6b7280; }
+.sales-detail-expenses__list { display: grid; gap: 8px; }
+.sales-expense-item { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 10px; }
+.sales-expense-item > div { display: flex; flex-direction: column; gap: 2px; }
+.sales-expense-item__number { font-size: 13px; font-weight: 700; color: #374151; }
+.sales-expense-item__time { font-size: 12px; color: #6b7280; }
+.sales-expense-item strong { font-size: 15px; color: #b42318; }
+.sales-expense-empty { padding: 18px; border: 1px dashed #d1d5db; border-radius: 10px; text-align: center; color: #6b7280; font-size: 13px; }
+body.modal-open { overflow: hidden; }
+@media (max-width: 640px) { .sales-detail-modal { padding: 12px; } .sales-detail-modal__dialog { max-height: calc(100vh - 24px); border-radius: 14px; } .sales-detail-modal__header, .sales-detail-modal__body { padding-left: 16px; padding-right: 16px; } .sales-detail-grid { grid-template-columns: 1fr; } .sales-detail-grid__total { grid-column: auto; } }

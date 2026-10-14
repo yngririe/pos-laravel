@@ -8,5 +8,5 @@ class MenuItem extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['name', 'price', 'discounted_price', 'category', 'image'];
+    protected $fillable = ['name', 'price', 'discounted_price', 'category', 'image', 'is_active'];
 }

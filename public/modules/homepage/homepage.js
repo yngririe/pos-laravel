@@ -6,7 +6,7 @@
         order: [],
         orderType: 'dine-in',
         paymentMethod: 'cash',
-        discountEnabled: false,
+        discountType: 'none',
     };
 
     // ── DOM refs ───────────────────────────────────────────────────────────
@@ -19,11 +19,7 @@
     const placeOrderBtn   = document.getElementById('place-order-btn');
     const amountInput     = document.getElementById('amount-input');
     const amountWrap      = document.getElementById('amount-wrap');
-    const gcashWrap       = document.getElementById('gcash-wrap');
-    const gcashRefInput   = document.getElementById('gcash-ref');
-    const gcashRefWrap    = document.getElementById('gcash-ref-wrap');
-    const gcashRefError   = document.getElementById('gcash-ref-error');
-    const discountToggle  = document.getElementById('discount-toggle');
+    const discountSelect  = document.getElementById('discount-select');
     const beeperInput     = document.getElementById('beeper-input');
     const beeperWrap      = document.getElementById('beeper-wrap');
     const beeperError     = document.getElementById('beeper-error');
@@ -38,6 +34,8 @@
     const startOrderBtn      = document.getElementById('start-order-btn');
     const pickDineInBtn      = document.getElementById('pick-dine-in');
     const pickTakeOutBtn     = document.getElementById('pick-take-out');
+    const pickDeliveryBtn    = document.getElementById('pick-delivery');
+    const pickPickupBtn      = document.getElementById('pick-pickup');
     const changeOrderTypeBtn = document.getElementById('change-order-type-btn');
     const orderTypeBadgeIcon = document.getElementById('order-type-badge-icon');
     const orderTypeBadgeLbl  = document.getElementById('order-type-badge-label');
@@ -116,13 +114,9 @@
 
     function updateOrderTypeBadge(type) {
         if (!orderTypeBadgeIcon || !orderTypeBadgeLbl) return;
-        if (type === 'take-out') {
-            orderTypeBadgeIcon.src     = BASE_URL + 'assets/images/take-out.png';
-            orderTypeBadgeLbl.textContent = 'Take out';
-        } else {
-            orderTypeBadgeIcon.src     = BASE_URL + 'assets/images/dine-in.png';
-            orderTypeBadgeLbl.textContent = 'Dine in';
-        }
+        const labels = { 'dine-in': 'Dine in', 'take-out': 'Take out', 'delivery': 'Delivery', 'pick-up': 'Pick up' };
+        orderTypeBadgeLbl.textContent = labels[type] || 'Dine in';
+        orderTypeBadgeIcon.src = BASE_URL + (type === 'dine-in' ? 'assets/images/dine-in.png' : 'assets/images/take-out.png');
     }
 
     function chooseOrderType(type) {
@@ -137,32 +131,30 @@
     if (startOrderBtn)  startOrderBtn.addEventListener('click', () => showScreen('type'));
     if (pickDineInBtn)  pickDineInBtn.addEventListener('click', () => chooseOrderType('dine-in'));
     if (pickTakeOutBtn) pickTakeOutBtn.addEventListener('click', () => chooseOrderType('take-out'));
+    if (pickDeliveryBtn) pickDeliveryBtn.addEventListener('click', () => chooseOrderType('delivery'));
+    if (pickPickupBtn) pickPickupBtn.addEventListener('click', () => chooseOrderType('pick-up'));
     if (changeOrderTypeBtn) changeOrderTypeBtn.addEventListener('click', () => showScreen('type'));
 
     // ── Discount Calculation ───────────────────────────────────────────────
+    // Discounts apply once to the lowest-priced unit in the order.
+    // Percentage discounts are rounded to a whole peso so totals never contain centavos.
     function getItemDiscount(price) {
-        if (typeof DISCOUNT_MAP !== 'undefined' && DISCOUNT_MAP[price] !== undefined) {
-            return DISCOUNT_MAP[price];
-        }
-        return Math.floor(price * 0.20);
+        if (state.discountType === '20') return Math.round(price * 0.20);
+        if (state.discountType === '10') return Math.round(price * 0.10);
+        if (state.discountType === 'minus10') return Math.min(10, price);
+        return 0;
     }
 
     function calcTotals() {
-        let subtotal      = 0;
+        let subtotal = 0;
+        state.order.forEach(item => { subtotal += item.price * item.qty; });
         let totalDiscount = 0;
-
-        state.order.forEach(item => {
-            subtotal += item.price * item.qty;
-        });
-
-        if (state.discountEnabled && state.order.length > 0) {
-            const cheapest = state.order.reduce((min, item) =>
-                item.price < min.price ? item : min, state.order[0]);
+        if (state.discountType !== 'none' && state.order.length > 0) {
+            const cheapest = state.order.reduce((min, item) => item.price < min.price ? item : min, state.order[0]);
             totalDiscount = getItemDiscount(cheapest.price);
         }
-
-        const total = subtotal - totalDiscount;
-        return { subtotal, totalDiscount, total };
+        const total = Math.round(subtotal - totalDiscount);
+        return { subtotal: Math.round(subtotal), totalDiscount, total };
     }
 
     // ── Add to Order ───────────────────────────────────────────────────────
@@ -214,7 +206,7 @@
             ? state.order.reduce((min, o) => o.price < min.price ? o : min, state.order[0])
             : null;
         const isCheapest = cheapest && item.id === cheapest.id;
-        const disc       = (state.discountEnabled && isCheapest) ? getItemDiscount(item.price) : 0;
+        const disc       = (state.discountType !== 'none' && isCheapest) ? getItemDiscount(item.price) : 0;
         const effPrice   = item.price - disc;
 
         row.innerHTML = `
@@ -261,8 +253,8 @@
         discountValEl.textContent = totalDiscount > 0
             ? `−Php ${totalDiscount.toLocaleString()}`
             : 'Php 0';
-        totalEl.textContent       = `Php ${total.toFixed(2)}`;
-        placeOrderBtn.textContent = `Place order – Php ${total.toFixed(2)}`;
+        totalEl.textContent       = `Php ${total.toLocaleString()}`;
+        placeOrderBtn.textContent = `Place order – Php ${total.toLocaleString()}`;
 
         updatePlaceOrderState();
         updateChangeDisplay();
@@ -274,17 +266,12 @@
         const hasItems  = state.order.length > 0;
         const beeper    = beeperInput.value.trim();
         const isCash    = state.paymentMethod === 'cash';
-        const isGcash   = state.paymentMethod === 'gcash';
 
         let canPlace = hasItems;
         if (!beeper || parseInt(beeper) < 1 || parseInt(beeper) > BEEPER_MAX) canPlace = false;
         if (isCash) {
             const amount = parseFloat(amountInput.value) || 0;
             if (amount <= 0 || amount < total) canPlace = false;
-        }
-        if (isGcash) {
-            const ref = gcashRefInput ? gcashRefInput.value.trim() : '';
-            if (ref.length !== 13) canPlace = false;
         }
 
         placeOrderBtn.disabled = !canPlace;
@@ -307,25 +294,17 @@
 
     // ── Show/hide cash vs gcash inputs ─────────────────────────────────────
     function syncPaymentInputs() {
-        const isCash  = state.paymentMethod === 'cash';
-        const isGcash = state.paymentMethod === 'gcash';
-
+        const isCash = state.paymentMethod === 'cash';
         amountWrap.style.display = isCash ? '' : 'none';
         if (!isCash) {
             changeDisplay.style.display = 'none';
             amountInput.value = '';
         }
-        if (gcashWrap) gcashWrap.style.display = isGcash ? '' : 'none';
-        if (!isGcash && gcashRefInput) {
-            gcashRefInput.value = '';
-            if (gcashRefWrap)  gcashRefWrap.classList.remove('beeper-error');
-            if (gcashRefError) gcashRefError.classList.remove('visible');
-        }
     }
 
-    // ── Discount Toggle ────────────────────────────────────────────────────
-    discountToggle.addEventListener('change', () => {
-        state.discountEnabled = discountToggle.checked;
+    // ── Discount Selection ────────────────────────────────────────────────
+    discountSelect.addEventListener('change', () => {
+        state.discountType = discountSelect.value;
         renderOrder();
     });
 
@@ -370,23 +349,6 @@
         updateChangeDisplay();
         updatePlaceOrderState();
     });
-
-    // ── GCash reference input ──────────────────────────────────────────────
-    if (gcashRefInput) {
-        gcashRefInput.addEventListener('input', () => {
-            gcashRefInput.value = gcashRefInput.value.replace(/\D/g, '').slice(0, 13);
-            const val = gcashRefInput.value;
-            if (val.length > 0 && val.length < 13) {
-                if (gcashRefWrap)  gcashRefWrap.classList.add('beeper-error');
-                if (gcashRefError) gcashRefError.style.cssText = 'display:block;color:#e74c3c;font-size:12px;';
-                if (gcashRefError) gcashRefError.textContent = `${val.length}/13 digits`;
-            } else {
-                if (gcashRefWrap)  gcashRefWrap.classList.remove('beeper-error');
-                if (gcashRefError) gcashRefError.style.display = 'none';
-            }
-            updatePlaceOrderState();
-        });
-    }
 
     // ══════════════════════════════════════════════════════════════════════
     //  BLUETOOTH PRINTER
@@ -517,9 +479,7 @@
         const { total, totalDiscount, subtotal } = calcTotals();
         const beeper   = beeperInput.value.trim();
         const isCash   = state.paymentMethod === 'cash';
-        const isGcash  = state.paymentMethod === 'gcash';
         const amount   = parseFloat(amountInput.value) || 0;
-        const gcashRef = gcashRefInput ? gcashRefInput.value.trim() : '';
 
         if (!beeper || parseInt(beeper) < 1 || parseInt(beeper) > BEEPER_MAX) {
             beeperWrap.classList.add('beeper-error');
@@ -535,12 +495,6 @@
             amountInput.focus();
             return;
         }
-        if (isGcash && !gcashRef) {
-            if (gcashRefWrap)  gcashRefWrap.classList.add('beeper-error');
-            if (gcashRefError) gcashRefError.classList.add('visible');
-            if (gcashRefInput) gcashRefInput.focus();
-            return;
-        }
 
         const change = isCash ? (amount - total) : 0;
 
@@ -549,7 +503,7 @@
             order_type:      state.orderType,
             payment_method:  state.paymentMethod,
             amount_paid:     isCash ? amount : total,
-            gcash_reference: isGcash ? gcashRef : '',
+            discount_type:  state.discountType,
             subtotal,
             discount:        totalDiscount,
             total,
@@ -594,15 +548,12 @@
 
                 // Reset state
                 state.order           = [];
-                state.discountEnabled = false;
-                discountToggle.checked = false;
+                state.discountType = 'none';
+                discountSelect.value = 'none';
                 amountInput.value      = '';
                 beeperInput.value      = '';
-                if (gcashRefInput) gcashRefInput.value = '';
                 beeperWrap.classList.remove('beeper-error');
                 beeperError.classList.remove('visible');
-                if (gcashRefWrap)  gcashRefWrap.classList.remove('beeper-error');
-                if (gcashRefError) gcashRefError.classList.remove('visible');
                 changeDisplay.style.display = 'none';
                 renderOrder();
             } else {

@@ -8,6 +8,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ServedController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Support\Facades\Auth;
@@ -50,8 +51,17 @@ Route::middleware('auth')->group(function () {
 
     // ── Admin only ─────────────────────────────────────────────────────────
     Route::middleware(EnsureAdmin::class)->group(function () {
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+        Route::post('/settings/receipt', [SettingsController::class, 'saveReceipt'])->name('settings.receipt.save');
+        Route::post('/settings/logo', [SettingsController::class, 'uploadLogo'])->name('settings.logo');
+        Route::post('/settings/menu', [SettingsController::class, 'storeMenu'])->name('settings.menu.store');
+        Route::put('/settings/menu/{menuItem}', [SettingsController::class, 'updateMenu'])->name('settings.menu.update');
+        Route::delete('/settings/menu/{menuItem}', [SettingsController::class, 'destroyMenu'])->name('settings.menu.destroy');
+
         Route::get('/statistics', [StatisticsController::class, 'index'])->name('statistics');
         Route::get('/statistics/report', [StatisticsController::class, 'report'])->name('statistics.report');
+        Route::post('/statistics/daily-cash', [StatisticsController::class, 'saveDailyCash'])->name('statistics.daily-cash');
+        Route::post('/statistics/expenses', [StatisticsController::class, 'addExpense'])->name('statistics.expenses.store');
 
         Route::get('/cashiers/create', [CashierController::class, 'create'])->name('cashiers.create');
         Route::post('/cashiers', [CashierController::class, 'store'])->name('cashiers.store');

@@ -16,25 +16,16 @@ class ProfileController extends Controller
     {
         $user = $request->user()->toArray();
 
-        // The receipt/appearance settings live in a single row (id = 1); create it if missing.
-        $receipt = Pos::one('SELECT * FROM receipt_settings WHERE id = 1');
-        if (!$receipt) {
-            DB::table('receipt_settings')->insert(['id' => 1, 'store_name' => 'Twist & Roll']);
-            $receipt = Pos::one('SELECT * FROM receipt_settings WHERE id = 1');
-        }
-
         $success_msg = session('success_msg', '');
         $error_msg   = session('error_msg', '');
 
-        return view('pages.profile', Pos::shared('profile') + compact('user', 'receipt', 'success_msg', 'error_msg'));
+        return view('pages.profile', Pos::shared('profile') + compact('user', 'success_msg', 'error_msg'));
     }
 
     /** One POST endpoint, switched on the hidden "action" field (same as the old profile.php forms). */
     public function update(Request $request)
     {
         $user    = $request->user();
-        $isAdmin = $user->role === 'admin';
-
         switch ($request->input('action')) {
             case 'edit_profile':
                 return $this->editProfile($request, $user);
@@ -47,30 +38,6 @@ class ProfileController extends Controller
                     $user->update(['avatar' => '/' . $path]);
                 });
 
-            case 'upload_logo':
-                abort_unless($isAdmin, 403);
-                return $this->uploadImage($request, 'logo', 'assets/images', 'Logo updated successfully.', function ($path) {
-                    DB::table('receipt_settings')->where('id', 1)->update(['logo_path' => $path]);
-                });
-
-            case 'toggle_dark_mode':
-                abort_unless($isAdmin, 403);
-                $dark = $request->boolean('dark_mode') ? 1 : 0;
-                DB::table('receipt_settings')->where('id', 1)->update(['dark_mode' => $dark]);
-                return response()->json(['success' => true, 'dark_mode' => $dark]);
-
-            case 'save_receipt':
-                abort_unless($isAdmin, 403);
-                DB::table('receipt_settings')->where('id', 1)->update([
-                    'store_address'     => trim((string) $request->input('store_address', '')),
-                    'receipt_header'    => trim((string) $request->input('receipt_header', '')),
-                    'receipt_footer'    => trim((string) $request->input('receipt_footer', '')),
-                    'show_discount'     => $request->has('show_discount') ? 1 : 0,
-                    'show_order_type'   => $request->has('show_order_type') ? 1 : 0,
-                    'show_payment_type' => $request->has('show_payment_type') ? 1 : 0,
-                    'show_beeper'       => $request->has('show_beeper') ? 1 : 0,
-                ]);
-                return $this->done('Receipt settings saved successfully.');
         }
 
         return redirect()->route('profile');

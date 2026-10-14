@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\MenuItem;
 use App\Support\Pos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,30 +51,36 @@ class OrderController extends Controller
             return $this->fail('Beeper number must be between 1 and 16.');
         }
 
-        if (!in_array($data['order_type'] ?? null, ['dine-in', 'take-out'], true)) {
+        if (!in_array($data['order_type'] ?? null, ['dine-in', 'take-out', 'delivery', 'pick-up'], true)) {
             return $this->fail('Invalid order type.');
         }
         if (!in_array($data['payment_method'] ?? null, ['cash', 'gcash'], true)) {
             return $this->fail('Invalid payment method.');
         }
 
-        $gcashRef = trim((string) ($data['gcash_reference'] ?? ''));
-        if ($gcashRef !== '' && !preg_match('/^\d{13}$/', $gcashRef)) {
-            return $this->fail('Invalid GCash reference number.');
+
+        if (!isset($data['amount_paid']) || !is_numeric($data['amount_paid'])) {
+            return $this->fail('Missing or invalid amount paid.');
         }
 
-        foreach (['amount_paid', 'subtotal', 'discount', 'total', 'change_amount'] as $field) {
-            if (!isset($data[$field]) || !is_numeric($data[$field])) {
-                return $this->fail("Missing or invalid $field.");
-            }
+        $discountType = (string) ($data['discount_type'] ?? 'none');
+        if (!in_array($discountType, ['none', '20', '10', 'minus10'], true)) {
+            return $this->fail('Invalid discount type.');
         }
 
-        foreach ($data['items'] as $item) {
-            if (!isset($item['name'], $item['price'], $item['qty'])
-                || !is_numeric($item['price']) || (int) $item['qty'] < 1) {
-                return $this->fail('Invalid order item.');
-            }
+        $priced = $this->priceItems($data['items']);
+        if ($priced === null) {
+            return $this->fail('One or more order items are invalid.');
         }
+        [$itemRows, $subtotal, $discount, $total] = $this->calculateTotals($priced, $discountType);
+        $amountPaid = (float) $data['amount_paid'];
+        if (($data['payment_method'] ?? null) === 'cash' && $amountPaid < $total) {
+            return $this->fail('Amount paid must be equal to or greater than the total.');
+        }
+        if (($data['payment_method'] ?? null) === 'gcash') {
+            $amountPaid = $total;
+        }
+        $changeAmount = ($data['payment_method'] ?? null) === 'cash' ? max(0, $amountPaid - $total) : 0;
 
         $beeperInUse = Order::where('beeper_number', $beeper)
             ->where('status', 'pending')
@@ -84,21 +91,21 @@ class OrderController extends Controller
         }
 
         try {
-            $order = DB::transaction(function () use ($data, $branch_id, $beeper, $gcashRef) {
+            $order = DB::transaction(function () use ($data, $branch_id, $beeper, $itemRows, $subtotal, $discount, $total, $amountPaid, $changeAmount) {
                 $order = Order::create([
                     'branch_id'       => $branch_id,
                     'beeper_number'   => $beeper,
                     'order_type'      => $data['order_type'],
                     'payment_method'  => $data['payment_method'],
-                    'amount_paid'     => $data['amount_paid'],
-                    'gcash_reference' => $gcashRef,
-                    'subtotal'        => $data['subtotal'],
-                    'discount'        => $data['discount'],
-                    'total'           => $data['total'],
-                    'change_amount'   => $data['change_amount'],
+                    'amount_paid'     => $amountPaid,
+                    'gcash_reference' => null,
+                    'subtotal'        => $subtotal,
+                    'discount'        => $discount,
+                    'total'           => $total,
+                    'change_amount'   => $changeAmount,
                 ]);
 
-                $order->items()->createMany($this->itemRows($data['items']));
+                $order->items()->createMany($itemRows);
 
                 return $order;
             });
@@ -125,13 +132,15 @@ class OrderController extends Controller
             return $this->fail('Beeper number must be between 1 and 16.');
         }
 
-        if (!isset($data['total']) || !is_numeric($data['total'])) {
-            return $this->fail('Missing or invalid total.');
+        if (!in_array($data['order_type'] ?? null, ['dine-in', 'take-out', 'delivery', 'pick-up'], true)) {
+            return $this->fail('Invalid order type.');
         }
-
-        $extraRef = $data['gcash_ref'] ?? null;
-        if (!empty($extraRef) && !preg_match('/^\d{13}$/', (string) $extraRef)) {
-            return $this->fail('Invalid GCash reference number. Must be 13 digits.');
+        if (!in_array($data['payment_method'] ?? null, ['cash', 'gcash'], true)) {
+            return $this->fail('Invalid payment method.');
+        }
+        $discountType = (string) ($data['discount_type'] ?? 'none');
+        if (!in_array($discountType, ['none', '20', '10', 'minus10'], true)) {
+            return $this->fail('Invalid discount type.');
         }
 
         $order = Order::where('id', $data['order_id'])->where('branch_id', $branch_id)->first();
@@ -139,27 +148,39 @@ class OrderController extends Controller
             return $this->fail('Order not found or unauthorized');
         }
 
-        $diff = (float) $data['total'] - (float) $order->total;
+        if (empty($data['items']) || !is_array($data['items'])) {
+            return $this->fail('No items');
+        }
+        $priced = $this->priceItems($data['items']);
+        if ($priced === null) {
+            return $this->fail('One or more order items are invalid.');
+        }
+        [$itemRows, $subtotal, $discount, $total] = $this->calculateTotals($priced, $discountType);
+        $amountPaid = ($data['payment_method'] ?? null) === 'gcash'
+            ? $total
+            : max((float) ($data['amount_paid'] ?? $total), $total);
+
+        $diff = $total - (float) $order->total;
 
         try {
-            DB::transaction(function () use ($order, $data, $beeper, $extraRef) {
+            DB::transaction(function () use ($order, $data, $beeper, $itemRows, $subtotal, $discount, $total, $amountPaid, $diff) {
                 $order->update([
                     'beeper_number'      => $beeper,
                     'order_type'         => $data['order_type'],
                     'payment_method'     => $data['payment_method'],
-                    'amount_paid'        => $data['amount_paid'] ?? $data['total'],
-                    'subtotal'           => $data['subtotal'] ?? $data['total'],
-                    'discount'           => $data['discount'] ?? 0,
-                    'total'              => $data['total'],
-                    // keep the previous extra reference unless a new one was supplied
-                    'gcash_reference_extra' => !empty($extraRef) ? $extraRef : $order->gcash_reference_extra,
-                    'gcash_extra_amount' => $data['gcash_extra_amount'] ?? 0,
-                    'refund_amount'      => $data['refund_amount'] ?? 0,
+                    'amount_paid'        => $amountPaid,
+                    'subtotal'           => $subtotal,
+                    'discount'           => $discount,
+                    'total'              => $total,
+                    'gcash_reference'    => null,
+                    'gcash_reference_extra' => null,
+                    'gcash_extra_amount' => max(0, $diff ?? 0),
+                    'refund_amount'      => max(0, -($diff ?? 0)),
                 ]);
 
                 if (!empty($data['items']) && is_array($data['items'])) {
                     $order->items()->delete();
-                    $order->items()->createMany($this->itemRows($data['items']));
+                    $order->items()->createMany($itemRows);
                 }
             });
         } catch (\Throwable $e) {
@@ -170,7 +191,7 @@ class OrderController extends Controller
         return response()->json([
             'success'       => true,
             'diff'          => $diff,
-            'refund_amount' => $data['refund_amount'] ?? 0,
+            'refund_amount' => max(0, -$diff),
         ]);
     }
 
@@ -206,14 +227,37 @@ class OrderController extends Controller
             : response()->json(['success' => true]);
     }
 
-    private function itemRows(array $items): array
+    private function priceItems(array $items): ?array
     {
-        return array_map(fn ($item) => [
-            'menu_item_id' => $item['id'] ?? null,
-            'name'         => $item['name'],
-            'price'        => $item['price'],
-            'quantity'     => (int) $item['qty'],
-        ], $items);
+        $ids = collect($items)->pluck('id')->filter()->map(fn ($id) => (int) $id)->unique()->values();
+        $menu = MenuItem::whereIn('id', $ids)->get()->keyBy('id');
+        $priced = [];
+        foreach ($items as $item) {
+            $id = (int) ($item['id'] ?? 0);
+            $qty = (int) ($item['qty'] ?? 0);
+            $menuItem = $menu->get($id);
+            if (!$menuItem || $qty < 1) return null;
+            $priced[] = [
+                'menu_item_id' => $menuItem->id,
+                'name' => $menuItem->name,
+                'price' => (float) $menuItem->price,
+                'quantity' => $qty,
+            ];
+        }
+        return $priced;
+    }
+
+    private function calculateTotals(array $items, string $discountType): array
+    {
+        $subtotal = (int) round(array_sum(array_map(fn ($item) => $item['price'] * $item['quantity'], $items)));
+        $lowest = empty($items) ? 0 : min(array_column($items, 'price'));
+        $discount = match ($discountType) {
+            '20' => (int) round($lowest * 0.20),
+            '10' => (int) round($lowest * 0.10),
+            'minus10' => (int) min(10, $lowest),
+            default => 0,
+        };
+        return [$items, $subtotal, $discount, max(0, $subtotal - $discount)];
     }
 
     private function fail(string $message): JsonResponse

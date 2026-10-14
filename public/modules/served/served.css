@@ -454,3 +454,8 @@
 @media (max-width: 480px) {
     .served-grid { grid-template-columns: 1fr; }
 }
+
+/* Requested POS refinements */
+.served-total-price {
+    color: var(--green-100) !important;
+}
