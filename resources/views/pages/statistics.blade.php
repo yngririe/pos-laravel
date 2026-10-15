@@ -6,15 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statistics — Twist &amp; Roll</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/statistics/statistics.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/statistics/statistics.css?v=20261015-bizday1">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1C3924">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
-    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-xpad1') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 <body>
 
@@ -230,6 +231,7 @@
                 const modal = document.getElementById('salesDetailModal');
                 if (!modal) return;
                 const peso = value => '₱' + Math.round(Number(value || 0)).toLocaleString('en-PH');
+                const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
                 const fmtTime = raw => {
                     if (!raw) return '—';
                     const normalized = String(raw).replace(' ', 'T') + (String(raw).includes('Z') || /[+-]\d\d:\d\d$/.test(String(raw)) ? '' : 'Z');
@@ -254,7 +256,7 @@
                     const list = document.getElementById('detailExpenseList');
                     list.innerHTML = expenses.length ? expenses.map((expense, index) => `
                         <div class="sales-expense-item">
-                            <div><span class="sales-expense-item__number">Expense ${index + 1}</span><span class="sales-expense-item__time">${fmtTime(expense.created_at)}</span></div>
+                            <div><span class="sales-expense-item__number">${escapeHtml(expense.note || `Expense ${index + 1}`)}</span><span class="sales-expense-item__time">${fmtTime(expense.created_at)}</span></div>
                             <strong>${peso(expense.amount)}</strong>
                         </div>`).join('') : '<div class="sales-expense-empty">No expenses recorded for this business day.</div>';
                     modal.classList.add('is-open');
@@ -391,7 +393,7 @@
                             data-ordered-at="<?= htmlspecialchars($ordered_at_fmt, ENT_QUOTES, 'UTF-8') ?>"
                             data-gcash-extra-amount="<?= $gcashExtraAmt ?>"
                         >
-                            <td><?= (int)$o['beeper_number'] ?></td>
+                            <td><?= !empty($o['beeper_number']) ? (int)$o['beeper_number'] : (($o['order_type'] ?? '') === 'delivery' ? htmlspecialchars($o['customer_name'] ?? '—') : '—') ?></td>
                             <td><?= $display_dt ?></td>
                             <td><?= ['dine-in'=>'Dine in','take-out'=>'Take out','delivery'=>'Delivery','pick-up'=>'Pick up'][$o['order_type']] ?? ucfirst($o['order_type']) ?></td>
                             <td><?= ucfirst($o['payment_method']) ?></td>
@@ -435,7 +437,7 @@
                     <p class="overview-label">Today’s Business Day</p>
                     <div class="finance-date"><?= date('F j, Y', strtotime($today)) ?> · 3:00 PM to next day 2:00 AM</div>
                 </div>
-                <?php if (session('cash_record_saved')): ?><span class="finance-saved">Petty cash saved</span><?php elseif (session('expense_added')): ?><span class="finance-saved">Expense added</span><?php endif; ?>
+                <?php if (!$business_open): ?><span class="finance-closed">Business Closed · New day starts at 3:00 PM</span><?php elseif (session('cash_record_saved')): ?><span class="finance-saved">Petty cash saved</span><?php elseif (session('expense_added')): ?><span class="finance-saved">Expense added</span><?php endif; ?>
             </div>
             <div class="finance-grid">
                 <div class="finance-card finance-card--editable finance-card--cash-entry">
@@ -443,9 +445,9 @@
                         @csrf
                         <input type="hidden" name="business_date" value="<?= $today ?>">
                         <label for="petty_cash">Petty Cash</label>
-                        <div class="money-input"><span>₱</span><input id="petty_cash" name="petty_cash" type="number" min="0" step="1" value="<?= (int)round($today_cash_record['petty_cash']??0) ?>" required></div>
-                        <span class="finance-help">Starting money for this business day</span>
-                        <button type="submit" class="finance-save-btn">Save Petty Cash</button>
+                        <div class="money-input"><span>₱</span><input id="petty_cash" name="petty_cash" type="number" min="0" step="1" value="<?= (int)round($today_cash_record['petty_cash']??0) ?>" required <?= !$business_open ? 'disabled' : '' ?>></div>
+                        <span class="finance-help"><?= $business_open ? 'Starting money for this business day' : 'Closed — previous day is available in Sales Archive' ?></span>
+                        <button type="submit" class="finance-save-btn" <?= !$business_open ? 'disabled' : '' ?>>Save Petty Cash</button>
                     </form>
 
                     <div class="expense-divider"></div>
@@ -453,15 +455,17 @@
                         @csrf
                         <input type="hidden" name="business_date" value="<?= $today ?>">
                         <label for="expense_amount">Add Expense</label>
-                        <div class="money-input"><span>₱</span><input id="expense_amount" name="amount" type="number" min="1" step="1" placeholder="0" required></div>
-                        <span class="finance-help">Add expenses one at a time. You can add as many as needed.</span>
-                        <button type="submit" class="finance-save-btn">Add Expense</button>
+                        <div class="money-input"><span>₱</span><input id="expense_amount" name="amount" type="number" min="1" step="1" placeholder="0" required <?= !$business_open ? 'disabled' : '' ?>></div>
+                        <label for="expense_note">Note</label>
+                        <input class="expense-note-input" id="expense_note" name="note" type="text" maxlength="255" placeholder="e.g. Ingredients, delivery fee, ice" required <?= !$business_open ? 'disabled' : '' ?>>
+                        <span class="finance-help">Add what the expense was for. You can add as many expenses as needed.</span>
+                        <button type="submit" class="finance-save-btn" <?= !$business_open ? 'disabled' : '' ?>>Add Expense</button>
                     </form>
                     <div class="expense-total-row"><span>Today's Expenses</span><strong>₱<?= number_format($today_expense_total,0) ?></strong></div>
                     <?php if (!empty($today_expenses)): ?>
                         <div class="expense-list">
                             <?php foreach ($today_expenses as $expense): ?>
-                                <div class="expense-list__item"><span>Expense</span><b>₱<?= number_format($expense['amount'],0) ?></b></div>
+                                <div class="expense-list__item"><span><?= e($expense['note'] ?? 'Expense') ?></span><b>₱<?= number_format($expense['amount'],0) ?></b></div>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
@@ -585,10 +589,10 @@
         window.location.href = url.toString();
     }
 </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-<script src="<?= $base_url ?>modules/statistics/statistics.js"></script>
-<script src="/assets/js/pwa_register.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=20261015-xpad1"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js?v=20261015-xpad1"></script>
+<script src="<?= $base_url ?>modules/statistics/statistics.js?v=20261015-xpad1"></script>
+<script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
 
 </body>
 </html>

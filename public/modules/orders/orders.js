@@ -5,6 +5,8 @@
     let currentFilter = 'all';
     let currentSearch  = '';
     let currentPage    = 1;
+    let currentView    = 'grid';
+    const ORDER_VIEW_KEY = 'twistroll_orders_view';
 
     // ── HELPERS ────────────────────────────────────────────
     function getAllCards() {
@@ -14,11 +16,13 @@
     function getFilteredCards() {
         const val = currentSearch;
         return getAllCards().filter(card => {
-            const beeper = (card.querySelector('.order-id')?.dataset.beeper || '').trim();
+            const idEl = card.querySelector('.order-id');
+            const beeper = (idEl?.dataset.beeper || '').trim();
+            const customer = (idEl?.dataset.customer || '').trim().toLowerCase();
             const items  = Array.from(card.querySelectorAll('.order-row span:first-child'))
                 .map(el => el.textContent.toLowerCase().replace(/^\d+x\s*/i, '')).join(' ');
             return (currentFilter === 'all' || card.dataset.type === currentFilter)
-                && (val === '' || beeper === val || items.includes(val));
+                && (val === '' || beeper === val || customer.includes(val) || items.includes(val));
         });
     }
 
@@ -70,7 +74,7 @@
         const all      = getAllCards();
         const filtered = getFilteredCards();
         const cols     = getColumnsCount();
-        const itemsPerPage = cols * 2; // max 2 rows per page
+        const itemsPerPage = currentView === 'list' ? 8 : cols * 2; // compact list shows more orders
 
         all.forEach(c => { c.style.display = 'none'; });
 
@@ -85,7 +89,10 @@
         if (currentPage > totalPages) currentPage = totalPages;
 
         const start = (currentPage - 1) * itemsPerPage;
-        filtered.slice(start, start + itemsPerPage).forEach(c => { c.style.display = 'flex'; });
+        // Let CSS choose the correct layout: flex for Box cards, grid for List rows.
+        // Setting inline display:flex here was overriding .list-view .order-card { display:grid }
+        // and caused the oversized/awkward List View.
+        filtered.slice(start, start + itemsPerPage).forEach(c => { c.style.removeProperty('display'); });
 
         renderPagination(filtered.length, itemsPerPage);
     }
@@ -107,6 +114,38 @@
         applyPagination();
     }
     window.filterOrders = filterOrders;
+
+    // ── BOX / LIST VIEW ────────────────────────────────────
+    const ordersGrid = document.getElementById('orders-grid');
+    const viewButtons = Array.from(document.querySelectorAll('.view-toggle-btn'));
+
+    function setOrderView(view, persist = true) {
+        currentView = view === 'list' ? 'list' : 'grid';
+        if (ordersGrid) ordersGrid.classList.toggle('list-view', currentView === 'list');
+        viewButtons.forEach(btn => {
+            const selected = btn.dataset.view === currentView;
+            btn.classList.toggle('active', selected);
+            btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+        if (persist) {
+            try { localStorage.setItem(ORDER_VIEW_KEY, currentView); } catch (e) { /* storage unavailable */ }
+        }
+        currentPage = 1;
+        applyPagination();
+    }
+
+    viewButtons.forEach(btn => btn.addEventListener('click', () => setOrderView(btn.dataset.view)));
+
+    try {
+        const savedView = localStorage.getItem(ORDER_VIEW_KEY);
+        if (savedView === 'list') currentView = 'list';
+    } catch (e) { /* storage unavailable */ }
+    if (ordersGrid) ordersGrid.classList.toggle('list-view', currentView === 'list');
+    viewButtons.forEach(btn => {
+        const selected = btn.dataset.view === currentView;
+        btn.classList.toggle('active', selected);
+        btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
 
     // ── MARK AS SERVED ─────────────────────────────────────
     function markServed(btn) {
@@ -191,6 +230,37 @@
     const epmTypeWrap     = document.getElementById('epm-type-wrap');
     const epmTypeInput    = document.getElementById('epm-type');
     const epmBeeper       = document.getElementById('epm-beeper');
+    const epmBeeperWrap   = document.getElementById('epm-beeper-wrap');
+    const epmCustomerWrap = document.getElementById('epm-customer-wrap');
+    const epmCustomerName = document.getElementById('epm-customer-name');
+
+    const BEEPER_MAX = 16;
+    const BEEPER_STORAGE_KEY = 'twistroll_next_beeper';
+
+    function setNextBeeperAfterEdit(value) {
+        const n = parseInt(value, 10);
+        if (Number.isNaN(n)) return;
+        const next = n >= BEEPER_MAX ? 1 : n + 1;
+        try { localStorage.setItem(BEEPER_STORAGE_KEY, String(next)); } catch (e) { /* storage unavailable */ }
+    }
+
+    function syncEditBeeperUI() {
+        if (!epmBeeperWrap || !epmBeeper) return;
+        const delivery = epm.orderType === 'delivery';
+        const pickup = epm.orderType === 'pick-up';
+        epmBeeperWrap.style.display = delivery ? 'none' : '';
+        epmCustomerWrap.style.display = delivery ? '' : 'none';
+        epmBeeper.disabled = delivery;
+        epmCustomerName.disabled = !delivery;
+        if (delivery) {
+            epmBeeper.value = '';
+            epmBeeper.placeholder = '';
+        } else if (pickup) {
+            epmBeeper.placeholder = 'Optional (1-16)';
+        } else {
+            epmBeeper.placeholder = 'Required (1-16)';
+        }
+    }
     const epmItemsList    = document.getElementById('epm-items-list');
     const epmAddBtn       = document.getElementById('epm-add-btn');
     const epmMenuPicker   = document.getElementById('epm-menu-picker');
@@ -332,6 +402,7 @@
             epmTypeWrap.querySelectorAll('.type-btn').forEach(b => b.classList.remove('type-btn--active'));
             this.classList.add('type-btn--active');
             epm.orderType = this.dataset.type; epmTypeInput.value = this.dataset.type;
+            syncEditBeeperUI();
         });
     });
 
@@ -375,8 +446,10 @@
             epmOrderId.value      = epm.orderId;
             epmTypeInput.value    = epm.orderType;
             epmPaymentInput.value = epm.paymentMethod;
-            epmBeeper.value       = this.dataset.beeper;
+            epmBeeper.value       = this.dataset.beeper || '';
+            epmCustomerName.value = this.dataset.customer || '';
             epmAmountInput.value  = '';
+            syncEditBeeperUI();
 
             epmTypeWrap.querySelectorAll('.type-btn').forEach(b =>
                 b.classList.toggle('type-btn--active', b.dataset.type === epm.orderType));
@@ -401,7 +474,7 @@
     editModal.addEventListener('click', function (e) { if (e.target === this) closeEditModal(); });
 
     // ── SUBMIT SAVE ────────────────────────────────────────
-    function submitEditOrder({ subtotal, disc, total, beeper }) {
+    function submitEditOrder({ subtotal, disc, total, beeper, customerName }) {
         const amountPaid = epm.paymentMethod === 'cash'
             ? (parseFloat(epmAmountInput.value) || total)
             : total;
@@ -409,6 +482,7 @@
         const payload = {
             order_id:            parseInt(epm.orderId),
             beeper_number:       beeper,
+            customer_name:       epm.orderType === 'delivery' ? customerName : null,
             order_type:          epm.orderType,
             payment_method:      epm.paymentMethod,
             amount_paid:         amountPaid,
@@ -426,7 +500,12 @@
         })
         .then(r => r.json())
         .then(data => {
-            if (data.success) { location.reload(); }
+            if (data.success) {
+                // A beeper assigned/changed on Pick Up also becomes the next sequence source.
+                // Dine In / Take Out edits behave the same; Delivery never advances it.
+                if (epm.orderType !== 'delivery' && beeper !== null) setNextBeeperAfterEdit(beeper);
+                location.reload();
+            }
             else {
                 alert('Failed: ' + (data.message || 'Unknown error'));
                 epmSaveBtn.disabled = false; epmSaveBtn.textContent = 'Save Changes';
@@ -441,13 +520,21 @@
     // ── SAVE BUTTON ────────────────────────────────────────
     epmSaveBtn.addEventListener('click', function () {
         const { subtotal, disc, total } = calcEpmTotals();
-        const beeper = parseInt(epmBeeper.value) || 0;
-        if (!beeper || beeper < 1 || beeper > 16) {
+        const rawBeeper = epmBeeper.value.trim();
+        const beeper = rawBeeper ? parseInt(rawBeeper, 10) : null;
+        const beeperRequired = epm.orderType === 'dine-in' || epm.orderType === 'take-out';
+        const customerName = epmCustomerName.value.trim();
+        if (epm.orderType === 'delivery' && !customerName) {
+            epmCustomerName.focus(); epmCustomerName.style.borderColor = '#d9534f';
+            setTimeout(() => { epmCustomerName.style.borderColor = ''; }, 1500); return;
+        }
+        if ((beeperRequired && (!beeper || beeper < 1 || beeper > 16)) ||
+            (epm.orderType === 'pick-up' && beeper !== null && (beeper < 1 || beeper > 16))) {
             epmBeeper.focus(); epmBeeper.style.borderColor = '#d9534f';
             setTimeout(() => { epmBeeper.style.borderColor = ''; }, 1500); return;
         }
         if (epm.items.length === 0) { alert('Please add at least one item.'); return; }
-        submitEditOrder({ subtotal, disc, total, beeper });
+        submitEditOrder({ subtotal, disc, total, beeper, customerName });
     });
 
     // ══════════════════════════════════════════════════════

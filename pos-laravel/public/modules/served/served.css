@@ -448,9 +448,20 @@
    ============================================= */
 @media (max-width: 860px) {
     .served-controls { flex-direction: column; align-items: flex-start; }
-    .served-search-wrapper { width: 100%; }
+    .served-search-wrapper { width: 100%; flex: 0 0 auto; }
 }
 
 @media (max-width: 480px) {
     .served-grid { grid-template-columns: 1fr; }
+}
+
+/* Requested POS refinements */
+.served-total-price {
+    color: var(--green-100) !important;
+}
+
+/* XPAD/tablet browser: keep the full page reachable below browser chrome. */
+@media (min-width:761px) and (max-height:760px){
+  .served-page{height:auto;min-height:0;overflow-y:auto;padding-top:12px;padding-bottom:32px}
+  .served-title{margin-bottom:10px}.served-controls{margin-bottom:14px}
 }

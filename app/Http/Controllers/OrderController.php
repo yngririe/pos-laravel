@@ -8,6 +8,7 @@ use App\Support\Pos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
@@ -46,13 +47,29 @@ class OrderController extends Controller
             return $this->fail('No items');
         }
 
-        $beeper = (int) ($data['beeper_number'] ?? 0);
-        if ($beeper < 1 || $beeper > 16) {
-            return $this->fail('Beeper number must be between 1 and 16.');
+        $orderType = $data['order_type'] ?? null;
+        if (!in_array($orderType, ['dine-in', 'take-out', 'delivery', 'pick-up'], true)) {
+            return $this->fail('Invalid order type.');
         }
 
-        if (!in_array($data['order_type'] ?? null, ['dine-in', 'take-out', 'delivery', 'pick-up'], true)) {
-            return $this->fail('Invalid order type.');
+        $customerName = trim((string) ($data['customer_name'] ?? ''));
+        if ($orderType === 'delivery' && ($customerName === '' || mb_strlen($customerName) > 100)) {
+            return $this->fail('Customer name is required for delivery orders.');
+        }
+        if ($orderType !== 'delivery') {
+            $customerName = null;
+        }
+
+        // Delivery never uses a beeper. Pick up may optionally use one.
+        // Dine in / take out still require a beeper.
+        $rawBeeper = $data['beeper_number'] ?? null;
+        $beeper = ($rawBeeper === null || $rawBeeper === '') ? null : (int) $rawBeeper;
+        if ($orderType === 'delivery') {
+            $beeper = null;
+        } elseif (in_array($orderType, ['dine-in', 'take-out'], true) && ($beeper === null || $beeper < 1 || $beeper > 16)) {
+            return $this->fail('Beeper number must be between 1 and 16.');
+        } elseif ($orderType === 'pick-up' && $beeper !== null && ($beeper < 1 || $beeper > 16)) {
+            return $this->fail('Beeper number must be between 1 and 16.');
         }
         if (!in_array($data['payment_method'] ?? null, ['cash', 'gcash'], true)) {
             return $this->fail('Invalid payment method.');
@@ -82,19 +99,23 @@ class OrderController extends Controller
         }
         $changeAmount = ($data['payment_method'] ?? null) === 'cash' ? max(0, $amountPaid - $total) : 0;
 
-        $beeperInUse = Order::where('beeper_number', $beeper)
-            ->where('status', 'pending')
-            ->where('branch_id', $branch_id)
-            ->exists();
-        if ($beeperInUse) {
-            return $this->fail('beeper_in_use');
+        if ($beeper !== null) {
+            $beeperInUse = Order::where('beeper_number', $beeper)
+                ->where('status', 'pending')
+                ->where('branch_id', $branch_id)
+                ->exists();
+            if ($beeperInUse) {
+                return $this->fail('beeper_in_use');
+            }
         }
 
         try {
-            $order = DB::transaction(function () use ($data, $branch_id, $beeper, $itemRows, $subtotal, $discount, $total, $amountPaid, $changeAmount) {
+            $order = DB::transaction(function () use ($data, $branch_id, $beeper, $customerName, $itemRows, $subtotal, $discount, $total, $amountPaid, $changeAmount) {
                 $order = Order::create([
                     'branch_id'       => $branch_id,
+                    'created_by_user_id' => Auth::id(),
                     'beeper_number'   => $beeper,
+                    'customer_name'   => $customerName,
                     'order_type'      => $data['order_type'],
                     'payment_method'  => $data['payment_method'],
                     'amount_paid'     => $amountPaid,
@@ -127,13 +148,27 @@ class OrderController extends Controller
             return $this->fail('Missing order ID');
         }
 
-        $beeper = (int) ($data['beeper_number'] ?? 0);
-        if ($beeper < 1 || $beeper > 16) {
-            return $this->fail('Beeper number must be between 1 and 16.');
+        $orderType = $data['order_type'] ?? null;
+        if (!in_array($orderType, ['dine-in', 'take-out', 'delivery', 'pick-up'], true)) {
+            return $this->fail('Invalid order type.');
         }
 
-        if (!in_array($data['order_type'] ?? null, ['dine-in', 'take-out', 'delivery', 'pick-up'], true)) {
-            return $this->fail('Invalid order type.');
+        $customerName = trim((string) ($data['customer_name'] ?? ''));
+        if ($orderType === 'delivery' && ($customerName === '' || mb_strlen($customerName) > 100)) {
+            return $this->fail('Customer name is required for delivery orders.');
+        }
+        if ($orderType !== 'delivery') {
+            $customerName = null;
+        }
+
+        $rawBeeper = $data['beeper_number'] ?? null;
+        $beeper = ($rawBeeper === null || $rawBeeper === '') ? null : (int) $rawBeeper;
+        if ($orderType === 'delivery') {
+            $beeper = null;
+        } elseif (in_array($orderType, ['dine-in', 'take-out'], true) && ($beeper === null || $beeper < 1 || $beeper > 16)) {
+            return $this->fail('Beeper number must be between 1 and 16.');
+        } elseif ($orderType === 'pick-up' && $beeper !== null && ($beeper < 1 || $beeper > 16)) {
+            return $this->fail('Beeper number must be between 1 and 16.');
         }
         if (!in_array($data['payment_method'] ?? null, ['cash', 'gcash'], true)) {
             return $this->fail('Invalid payment method.');
@@ -146,6 +181,19 @@ class OrderController extends Controller
         $order = Order::where('id', $data['order_id'])->where('branch_id', $branch_id)->first();
         if (!$order) {
             return $this->fail('Order not found or unauthorized');
+        }
+
+        // A beeper may only belong to one pending order at a time.
+        // Include optional Pick Up beepers in the same pool, while ignoring the order being edited.
+        if ($beeper !== null) {
+            $beeperInUse = Order::where('branch_id', $branch_id)
+                ->where('status', 'pending')
+                ->where('beeper_number', $beeper)
+                ->where('id', '!=', $order->id)
+                ->exists();
+            if ($beeperInUse) {
+                return $this->fail('beeper_in_use');
+            }
         }
 
         if (empty($data['items']) || !is_array($data['items'])) {
@@ -163,9 +211,10 @@ class OrderController extends Controller
         $diff = $total - (float) $order->total;
 
         try {
-            DB::transaction(function () use ($order, $data, $beeper, $itemRows, $subtotal, $discount, $total, $amountPaid, $diff) {
+            DB::transaction(function () use ($order, $data, $beeper, $customerName, $itemRows, $subtotal, $discount, $total, $amountPaid, $diff) {
                 $order->update([
                     'beeper_number'      => $beeper,
+                    'customer_name'      => $customerName,
                     'order_type'         => $data['order_type'],
                     'payment_method'     => $data['payment_method'],
                     'amount_paid'        => $amountPaid,
@@ -193,6 +242,29 @@ class OrderController extends Controller
             'diff'          => $diff,
             'refund_amount' => max(0, -$diff),
         ]);
+    }
+
+    /** Pending orders created by an admin, used by cashier in-app notifications. */
+    public function notifications(): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user || $user->role !== 'cashier') {
+            return response()->json(['orders' => []]);
+        }
+
+        $rows = Pos::all("
+            SELECT o.id, o.beeper_number, o.customer_name, o.order_type, o.total, o.created_at
+            FROM orders o
+            INNER JOIN users u ON u.id = o.created_by_user_id
+            WHERE o.branch_id = ?
+              AND o.status = 'pending'
+              AND u.role = 'admin'
+              AND o.created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 24 HOUR)
+            ORDER BY o.id DESC
+            LIMIT 20
+        ", [Pos::branchId()]);
+
+        return response()->json(['orders' => Pos::localizeRows($rows)]);
     }
 
     public function serve(Request $request): JsonResponse

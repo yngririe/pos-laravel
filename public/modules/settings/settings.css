@@ -99,3 +99,151 @@ body.confirm-open { overflow: hidden !important; }
 @media (prefers-reduced-motion: reduce) {
     .confirm-backdrop, .confirm-dialog { transition: none; }
 }
+
+/* =========================================================
+   2026-10-15 — Twist & Roll system-consistent Settings UI
+   ========================================================= */
+body{background:var(--cream,#fffce8)!important;color:var(--green-100,#1c3924)!important}
+.settings-page{width:100%!important;max-width:none!important;margin:0!important;padding:24px 28px 72px!important;background:var(--cream,#fffce8)!important}
+.settings-heading{background:transparent!important;border:0!important;border-radius:0!important;padding:0!important;box-shadow:none!important;margin:0 0 16px!important;align-items:center!important}
+.settings-kicker{display:none!important}
+.settings-heading h1{font-family:Poppins,sans-serif!important;font-size:clamp(22px,1.9vw,31px)!important;font-weight:700!important;letter-spacing:0!important;color:#1c3924!important;margin:0 0 3px!important}
+.settings-heading p{font-size:12px!important;color:#72796f!important}
+.hours-card{min-width:245px!important;background:#fff!important;color:#1c3924!important;border:1px solid rgba(216,195,111,.45)!important;border-radius:12px!important;padding:11px 15px!important;box-shadow:0 3px 12px rgba(28,57,36,.05)!important}
+.hours-card span{color:#777d72!important;opacity:1!important}.hours-card strong{font-size:15px!important}.hours-card small{color:#8b8f86!important;opacity:1!important}
+.settings-tabs{position:static!important;background:rgba(255,255,255,.48)!important;backdrop-filter:none!important;border:1px solid rgba(216,195,111,.28)!important;border-radius:999px!important;padding:5px!important;display:inline-flex!important;width:auto!important;margin:0 0 16px!important;gap:4px!important}
+.settings-tab{border:0!important;border-radius:999px!important;min-height:38px!important;padding:8px 18px!important;color:#1c3924!important;font-size:12px!important}
+.settings-tab:hover{background:rgba(216,195,111,.16)!important}.settings-tab.active{background:var(--gold-100,#d8c36f)!important;color:#fff!important}
+.panel-title-row{background:#fff!important;border:1px solid rgba(216,195,111,.24)!important;border-radius:13px!important;padding:14px 16px!important;margin-bottom:12px!important;box-shadow:0 4px 16px rgba(28,57,36,.055)!important}
+.panel-title-row h2{font-size:17px!important;color:#1c3924!important}.panel-title-row p{font-size:11px!important}
+.btn-primary{background:#1c3924!important;color:#fff!important;box-shadow:none!important}.btn-primary:hover{background:#285035!important}
+.btn-secondary,.btn-edit{background:#f6f3df!important;color:#1c3924!important;border:1px solid rgba(216,195,111,.35)!important}.btn-delete{background:#fff!important;color:#9b3d35!important;border:1px solid #efd7d3!important}
+.menu-settings-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+.menu-setting-card{display:flex!important;flex-direction:column!important;min-height:0!important;border-radius:13px!important;border:1px solid rgba(216,195,111,.32)!important;box-shadow:0 4px 14px rgba(28,57,36,.05)!important;background:#fffdf2!important;overflow:hidden!important}
+.menu-setting-card:hover{transform:none!important;box-shadow:0 7px 18px rgba(28,57,36,.08)!important}
+.menu-setting-image{height:122px!important;min-height:122px!important;background:#faf6df!important;border-bottom:1px solid rgba(216,195,111,.2)!important}
+.menu-setting-image img{object-fit:contain!important;padding:8px!important}.menu-setting-card:hover .menu-setting-image img{transform:none!important}
+.menu-setting-body{padding:12px 13px!important;min-height:128px!important}.menu-setting-category{color:#a4842e!important}.menu-setting-body h3{font-size:14px!important;color:#1c3924!important;margin:3px 0 5px!important}.menu-setting-price{font-size:15px!important;color:#d0ae4f!important}.menu-setting-actions{gap:6px!important;padding-top:9px!important}.menu-setting-actions .btn-edit,.menu-setting-actions .btn-delete{min-height:32px!important;padding:6px 11px!important}
+.receipt-settings-layout{grid-template-columns:260px minmax(0,1fr)!important;gap:12px!important}.settings-card{border-radius:13px!important;border:1px solid rgba(216,195,111,.28)!important;box-shadow:0 4px 16px rgba(28,57,36,.05)!important;background:#fffdf5!important;padding:16px!important}.settings-card h3{color:#1c3924!important}.logo-preview{height:125px!important;background:#fffce8!important;border-color:#ddd0a3!important}.field-grid{gap:11px!important}.field-grid input{min-height:40px!important;border-color:#ded8bf!important;background:#fff!important}.receipt-options{gap:8px!important;margin-top:14px!important;padding-top:12px!important}.check-row{min-height:38px!important;background:#fff!important;border-color:#e4dfcb!important}
+.modal-backdrop,.confirm-backdrop{backdrop-filter:blur(2px)!important}.menu-modal,.confirm-dialog{border-radius:15px!important}.menu-modal{background:#fffdf5!important}.modal-head{background:#fffdf5!important}.menu-modal .form-actions{background:#fffdf5!important}
+@media(max-width:1200px){.menu-settings-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:920px){.settings-page{padding:20px 18px 64px!important}.menu-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.receipt-settings-layout{grid-template-columns:1fr!important}.settings-heading{align-items:stretch!important}.hours-card{min-width:0!important;max-width:330px}.settings-tabs{overflow-x:auto!important;max-width:100%}}
+@media(max-width:600px){.settings-page{padding:16px 12px 54px!important}.menu-settings-grid{grid-template-columns:1fr!important}.settings-heading{flex-direction:column!important}.hours-card{max-width:none!important}.settings-tabs{display:flex!important}.settings-tab{flex:1 0 auto!important}.menu-setting-image{height:140px!important}}
+
+/* =========================================================
+   2026-10-15 — Settings aligned with the core Twist & Roll POS
+   ========================================================= */
+body { background: var(--cream, #fefce0) !important; }
+.settings-page {
+    width: 100% !important;
+    max-width: 1500px !important;
+    margin: 0 auto !important;
+    padding: 24px 32px 72px !important;
+}
+.settings-heading {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 18px !important;
+    margin: 0 0 18px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+.settings-heading h1 {
+    font-family: Poppins, sans-serif !important;
+    font-size: clamp(24px, 2vw, 32px) !important;
+    font-weight: 700 !important;
+    color: var(--green-100, #1c3924) !important;
+    margin: 0 0 3px !important;
+}
+.settings-heading p { font-size: 12px !important; color: var(--text-muted, #5a6b5e) !important; }
+.hours-card {
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 9px 14px !important;
+    border-radius: 999px !important;
+    background: rgba(216,195,111,.12) !important;
+    border: 1px solid rgba(216,195,111,.55) !important;
+    box-shadow: none !important;
+    color: var(--green-100, #1c3924) !important;
+}
+.hours-card span { font-weight: 600; color: var(--green-100, #1c3924) !important; }
+.hours-card strong { font-size: 12px !important; white-space: nowrap; }
+.hours-card small { display: none; }
+
+.settings-tabs {
+    display: flex !important;
+    width: min(520px, 100%) !important;
+    gap: 6px !important;
+    padding: 5px !important;
+    margin: 0 0 16px !important;
+    border: 1px solid rgba(216,195,111,.30) !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,.48) !important;
+}
+.settings-tab { flex: 1 1 0 !important; min-height: 40px !important; border-radius: 999px !important; }
+.settings-tab.active { background: var(--gold-100, #d8c36f) !important; color: #fff !important; }
+
+.panel-title-row {
+    padding: 0 0 12px !important;
+    margin: 0 0 14px !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(216,195,111,.38) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+.panel-title-row h2 { font-size: 18px !important; color: var(--green-100, #1c3924) !important; }
+.panel-title-row p { font-size: 11px !important; }
+.btn-primary { border-radius: 999px !important; min-height: 40px; padding-inline: 18px !important; }
+
+.menu-settings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 14px !important; }
+.menu-setting-card {
+    background: var(--cream, #fefce0) !important;
+    border: 1.5px solid var(--gold-100, #d8c36f) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 4px 9px rgba(216,195,111,.25) !important;
+}
+.menu-setting-image { height: 132px !important; min-height: 132px !important; background: transparent !important; border-bottom: 0 !important; }
+.menu-setting-image img { object-fit: contain !important; padding: 12px 14px 4px !important; }
+.menu-setting-body { padding: 8px 14px 14px !important; min-height: 0 !important; }
+.menu-setting-category { font-size: 9px !important; color: #9a8236 !important; }
+.menu-setting-body h3 { font-size: 15px !important; line-height: 1.35; color: var(--green-100, #1c3924) !important; }
+.menu-setting-price { color: var(--gold-100, #d8c36f) !important; }
+.menu-setting-actions { margin-top: 10px !important; }
+.btn-edit, .btn-delete { border-radius: 999px !important; }
+
+.receipt-settings-layout { grid-template-columns: minmax(230px, 300px) minmax(0, 1fr) !important; gap: 16px !important; }
+.settings-card {
+    background: rgba(255,255,255,.78) !important;
+    border: 1px solid rgba(216,195,111,.36) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 4px 16px rgba(28,57,36,.055) !important;
+}
+.logo-preview { background: var(--cream, #fefce0) !important; }
+.field-grid input { border-radius: 10px !important; min-height: 42px !important; }
+
+@media (max-width: 1200px) { .menu-settings-grid { grid-template-columns: repeat(3, minmax(0,1fr)) !important; } }
+@media (max-width: 900px) {
+    .settings-page { padding: 20px 18px 60px !important; }
+    .settings-heading { align-items: flex-start !important; }
+    .menu-settings-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+    .receipt-settings-layout { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 600px) {
+    .settings-heading { flex-direction: column !important; }
+    .hours-card { border-radius: 12px !important; }
+    .menu-settings-grid { grid-template-columns: 1fr !important; }
+}
+
+/* XPAD/tablet browser: settings must remain scrollable with browser bars visible. */
+@media (min-width:761px) and (max-height:760px){
+  html,body{height:auto!important;min-height:100%!important;overflow-y:auto!important}
+  .settings-page{min-height:0!important;padding-top:18px!important;padding-bottom:72px!important}
+  .settings-heading{margin-bottom:14px!important}.settings-tabs{margin-bottom:16px!important}
+  .menu-modal{max-height:calc(100dvh - 24px)!important}
+}

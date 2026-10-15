@@ -73,7 +73,7 @@ class Pos
             // DECIMAL arrives as "229.00"; cast so it matches the DISCOUNT_MAP keys.
             $row['price'] = (int) round($row['price']);
             return $row;
-        }, self::all('SELECT id, name, price, category, image FROM menu_items WHERE is_active = 1 ORDER BY id'));
+        }, self::all('SELECT id, name, price, category, image FROM menu_items WHERE is_active = 1 ORDER BY price DESC, name ASC'));
 
         $discountMap = [];
         foreach (self::all('SELECT price, discounted_price FROM menu_items WHERE is_active = 1 AND discounted_price IS NOT NULL') as $row) {

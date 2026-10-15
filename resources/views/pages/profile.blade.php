@@ -6,15 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile — Twist &amp; Roll</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/profile/profile.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/profile/profile.css?v=20261015-xpad1">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1C3924">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
-    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-xpad1') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 <body>
 
@@ -341,7 +342,11 @@
     </div><!-- /.profile-layout -->
 </div><!-- /.profile-page -->
 
-<script src="<?= $base_url ?>modules/profile/profile.js"></script>
-<script src="/assets/js/pwa_register.js"></script>
+<script src="<?= $base_url ?>modules/profile/profile.js?v=20261015-xpad1"></script>
+<script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
+<?php if ($role === 'cashier'): ?>
+<script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>
+<script src="{{ asset('assets/js/order-notifications.js?v=20261015-bell1') }}"></script>
+<?php endif; ?>
 </body>
 </html>

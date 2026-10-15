@@ -1089,3 +1089,65 @@
 .sales-expense-empty { padding: 18px; border: 1px dashed #d1d5db; border-radius: 10px; text-align: center; color: #6b7280; font-size: 13px; }
 body.modal-open { overflow: hidden; }
 @media (max-width: 640px) { .sales-detail-modal { padding: 12px; } .sales-detail-modal__dialog { max-height: calc(100vh - 24px); border-radius: 14px; } .sales-detail-modal__header, .sales-detail-modal__body { padding-left: 16px; padding-right: 16px; } .sales-detail-grid { grid-template-columns: 1fr; } .sales-detail-grid__total { grid-column: auto; } }
+
+/* =========================================================
+   2026-10-15 — Compact finance dashboard polish
+   Keeps the existing Twist & Roll visual language while
+   reducing unused vertical space in the daily summary.
+   ========================================================= */
+.finance-overview{padding:16px 18px!important;box-shadow:0 5px 20px rgba(28,57,36,.08)!important;border-radius:14px!important}
+.finance-overview__header{margin-bottom:10px!important;align-items:center}
+.finance-overview__header .overview-label{font-size:13px!important;color:#1c3924!important;margin:0 0 2px!important}
+.finance-date{font-size:11px!important}
+.finance-grid{grid-template-columns:minmax(300px,1.15fr) minmax(240px,.95fr) minmax(240px,.95fr)!important;gap:12px!important;align-items:stretch}
+.finance-card{padding:14px 16px!important;border-radius:12px!important;min-height:0!important}
+.finance-card--cash-entry{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px 14px!important;align-content:start}
+.finance-card--cash-entry .finance-entry-form{display:grid;gap:6px;align-content:start}
+.finance-card--cash-entry .expense-divider{display:none}
+.finance-entry-form label{font-size:12px!important}
+.money-input{min-height:38px!important;border-radius:9px!important}
+.money-input input{padding:7px 10px 7px 4px!important;font-size:14px!important}
+.finance-help{font-size:10px!important;line-height:1.4}
+.finance-save-btn{padding:8px 12px!important;font-size:11px!important;min-height:34px}
+.expense-total-row{grid-column:1/-1;margin:2px 0 0!important;padding-top:10px!important}
+.expense-total-row strong{font-size:16px!important}
+.expense-list{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px;max-height:72px!important;margin-top:0!important}
+.expense-list__item{padding:5px 0!important;font-size:11px!important}
+.finance-card__label{font-size:12px!important;margin-bottom:4px!important}
+.finance-card__total{font-size:clamp(23px,1.9vw,31px)!important;margin-bottom:10px!important}
+.sales-split{margin-bottom:8px!important}
+.sales-split span{padding:8px 10px!important;font-size:11px!important}
+.finance-card--total{display:flex;flex-direction:column;justify-content:center;background:#f1f6ef!important}
+.finance-formula{font-size:11px!important;margin-bottom:3px!important}
+.finance-breakdown{font-size:11px!important;margin-bottom:4px!important}
+.finance-card--total .finance-card__total{margin-bottom:0!important}
+@media(max-width:1050px){.finance-grid{grid-template-columns:1fr 1fr!important}.finance-card--total{grid-column:1/-1}.finance-card--cash-entry{grid-row:span 1}}
+@media(max-width:720px){.finance-grid{grid-template-columns:1fr!important}.finance-card--total{grid-column:auto}.finance-card--cash-entry{grid-template-columns:1fr!important}.expense-total-row,.expense-list{grid-column:auto}.expense-list{grid-template-columns:1fr}}
+
+/* 2026-10-15 — keep the daily finance block compact; no stretched empty cards. */
+.finance-overview { padding: 14px 16px !important; }
+.finance-grid { align-items: start !important; }
+.finance-card { height: auto !important; align-self: start !important; }
+.finance-card--total { justify-content: flex-start !important; }
+@media (min-width: 1051px) {
+  .finance-grid { grid-template-columns: minmax(360px,1.35fr) minmax(230px,.82fr) minmax(230px,.82fr) !important; }
+}
+
+/* XPAD/tablet browser: statistics scrolls inside the remaining usable viewport. */
+@media (min-width:761px) and (max-height:760px){
+  .stats-wrapper{min-height:0;height:100%;overflow:hidden}
+  .stats-main{min-height:0;overflow-y:auto!important;padding-top:12px!important;padding-bottom:36px!important}
+  .stats-header{margin-bottom:12px!important}
+  .finance-overview{align-items:start!important}
+}
+
+.expense-note-input { width:100%; min-width:0; min-height:38px; border:1.5px solid #DDD3AF; border-radius:9px; background:#fff; color:#1C3924; padding:7px 11px; font:500 13px Poppins,sans-serif; outline:none; }
+.expense-note-input:focus { border-color:#1C3924; box-shadow:0 0 0 3px rgba(28,57,36,.08); }
+.expense-list__item span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sales-expense-item__number { max-width:440px; overflow-wrap:anywhere; }
+
+/* Business-hours state */
+.finance-closed{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:#fff7dc;border:1px solid #e5c96a;color:#6f5a12;font-size:12px;font-weight:700;white-space:nowrap}
+.finance-entry-form input:disabled,.finance-save-btn:disabled{opacity:.55;cursor:not-allowed}
+.finance-save-btn:disabled:hover{transform:none}
+@media(max-width:760px){.finance-closed{white-space:normal;text-align:center}}

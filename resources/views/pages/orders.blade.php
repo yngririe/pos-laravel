@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orders — Twist &amp; Roll</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/orders/orders.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/orders/orders.css?v=20261015-searchfix1">
     <script>
         const MENU_ITEMS   = <?= json_encode(array_values($menu_items)) ?>;
         const DISCOUNT_MAP = <?= json_encode($discount_map) ?>;
@@ -19,7 +19,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
-    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-xpad1') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 <body>
 
@@ -91,7 +92,7 @@
             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="8" cy="8" r="7"/><line x1="13" y1="13" x2="17" y2="17"/>
             </svg>
-            <input type="text" id="orderSearch" class="orders-search" placeholder="Search by order # or beeper">
+            <input type="text" id="orderSearch" class="orders-search" placeholder="Search by order #, beeper, customer or item">
         </div>
         <div class="orders-filters">
             <button class="filter active" onclick="filterOrders('all', this)">All</button>
@@ -99,6 +100,16 @@
             <button class="filter" onclick="filterOrders('take-out', this)">Take out</button>
             <button class="filter" onclick="filterOrders('delivery', this)">Delivery</button>
             <button class="filter" onclick="filterOrders('pick-up', this)">Pick up</button>
+        </div>
+        <div class="orders-view-toggle" role="group" aria-label="Order view">
+            <button type="button" class="view-toggle-btn active" data-view="grid" aria-pressed="true" title="Box view">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Box</span>
+            </button>
+            <button type="button" class="view-toggle-btn" data-view="list" aria-pressed="false" title="List view">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+                <span>List</span>
+            </button>
         </div>
     </div>
 
@@ -115,7 +126,7 @@
             $type       = $o['order_type'];
             $typeLabel = ['dine-in'=>'Dine in','take-out'=>'Take out','delivery'=>'Delivery','pick-up'=>'Pick up'][$type] ?? ucfirst($type);
             $badgeClass = $type === 'dine-in' ? 'dine' : 'takeout';
-            $orderLabel = $o['beeper_number'] ? '#'.$o['beeper_number'] : 'Order #'.str_pad($o['id'],4,'0',STR_PAD_LEFT);
+            $orderLabel = $o['beeper_number'] ? '#'.$o['beeper_number'] : (($type === 'delivery' && !empty($o['customer_name'])) ? $o['customer_name'] : 'Order #'.str_pad($o['id'],4,'0',STR_PAD_LEFT));
 
             $itemsJson = [];
             for ($i = 0; $i < count($names); $i++) {
@@ -131,7 +142,7 @@
         <div class="order-card" data-id="<?= $o['id'] ?>" data-type="<?= htmlspecialchars($type) ?>">
             <div class="order-top">
                 <div class="order-top-left">
-                    <span class="order-id" data-beeper="<?= $o['beeper_number'] ?>">Beeper #<?= $o['beeper_number'] ?></span>
+                    <span class="order-id" data-beeper="<?= $o['beeper_number'] ?>" data-customer="<?= htmlspecialchars($o['customer_name'] ?? '') ?>"><?= $o['beeper_number'] ? 'Beeper #'.$o['beeper_number'] : (($type === 'delivery' && !empty($o['customer_name'])) ? htmlspecialchars($o['customer_name']) : 'Order #'.str_pad($o['id'],4,'0',STR_PAD_LEFT)) ?></span>
                 </div>
                 <div class="order-top-right">
                     <span class="badge <?= $badgeClass ?>"><?= $typeLabel ?></span>
@@ -141,6 +152,7 @@
                             <button class="edit-order-btn"
                                 data-id="<?= $o['id'] ?>"
                                 data-beeper="<?= $o['beeper_number'] ?>"
+                                data-customer="<?= htmlspecialchars($o['customer_name'] ?? '') ?>"
                                 data-payment="<?= $o['payment_method'] ?>"
                                 data-type="<?= $o['order_type'] ?>"
                                 data-total="<?= $o['total'] ?>"
@@ -155,6 +167,12 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="order-list-meta" aria-hidden="true">
+                <span><?= array_sum(array_map('intval', $qtys)) ?> item<?= array_sum(array_map('intval', $qtys)) === 1 ? '' : 's' ?></span>
+                <span class="order-list-payment"><?= ucfirst($o['payment_method']) ?></span>
+                <span class="order-list-time"><?= $time ?></span>
             </div>
 
             <div class="order-items">
@@ -219,9 +237,13 @@
             <button type="button" class="type-btn" data-type="pick-up">Pick up</button>
         </div>
         <input type="hidden" id="epm-type">
-        <div class="order-panel__beeper">
+        <div class="order-panel__beeper" id="epm-beeper-wrap">
             <span class="beeper-label">Beeper #</span>
             <input type="number" id="epm-beeper" class="beeper-input" placeholder="Enter beeper number" min="1">
+        </div>
+        <div class="order-panel__beeper" id="epm-customer-wrap" style="display:none;">
+            <span class="beeper-label">Customer name</span>
+            <input type="text" id="epm-customer-name" class="beeper-input" placeholder="Enter customer name" maxlength="100" autocomplete="off">
         </div>
         <p class="epm-items-label">ORDER ITEMS</p>
         <div class="epm-items-list" id="epm-items-list"></div>
@@ -288,7 +310,11 @@
     </div>
 </div>
 
-<script src="<?= $base_url ?>modules/orders/orders.js"></script>
- <script src="/assets/js/pwa_register.js"></script>
+<script src="<?= $base_url ?>modules/orders/orders.js?v=20261015-delivery-notify1"></script>
+ <script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
+<?php if ($role === 'cashier'): ?>
+<script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>
+<script src="{{ asset('assets/js/order-notifications.js?v=20261015-bell1') }}"></script>
+<?php endif; ?>
 </body>
 </html>

@@ -839,3 +839,7 @@ body {
 :root[data-theme="dark"] .profile-card--danger {
     border-color: rgba(224, 96, 76, 0.3);
 }
+/* XPAD/tablet browser: profile remains reachable without fullscreen mode. */
+@media (min-width:761px) and (max-height:760px){
+  body{overflow-y:auto!important}.profile-page{height:auto!important;min-height:0!important;overflow:visible!important;padding-bottom:56px!important}
+}

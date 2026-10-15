@@ -1,20 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="<?= $dark_mode ? 'dark' : 'light' ?>">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statistics — Twist &amp; Roll</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/statistics/statistics.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/statistics/statistics.css?v=20261015-bizday1">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1C3924">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
-    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-xpad1') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 <body>
 
@@ -54,6 +55,10 @@
                     Profile
                 </a>
                 <?php if ($role === 'admin'): ?>
+                                <a href="{{ route('settings') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.1 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2V9.6h.4A1.7 1.7 0 0 0 4.1 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.5 4.1a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 9.9 2H14v.4a1.7 1.7 0 0 0 1.1 1.7 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.5 8.5a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.4V14h-.4a1.7 1.7 0 0 0-1.8 1z"/></svg>
+                    Settings
+                </a>
                 <a href="{{ route('cashiers.create') }}" class="dropdown-item">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="9" cy="7" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
@@ -118,6 +123,10 @@
                            class="tree-item <?= ($selected_section==='voids'&&$num==$selected_month)?'tree-item--active':'' ?>">
                             <img src="<?= $base_url ?>assets/images/voids_icon.png" class="sidebar-icon"> Voids <span class="tree-count"><?= $voids_by_month[$num]??0 ?></span>
                         </a>
+                        <a href="?page=statistics&sidebar=1&year=<?= $selected_year ?>&month=<?= $num ?>&section=sales"
+                           class="tree-item <?= ($selected_section==='sales'&&$num==$selected_month)?'tree-item--active':'' ?>">
+                            <span class="sidebar-sales-icon">₱</span> Sales <span class="tree-count"><?= $sales_days_by_month[$num]??0 ?></span>
+                        </a>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -143,6 +152,128 @@
         </div>
 
         <div class="section-view">
+            <?php if ($selected_section === 'sales'): ?>
+            <div class="section-view__top">
+                <h2 class="section-view__title">Sales</h2>
+                <div class="section-view__date">
+                    <img src="<?= $base_url ?>assets/images/calendar_icon.png" class="date-icon">
+                    <?= $months_list[$selected_month] ?> <?= $selected_year ?> · Business days start at 3:00 PM
+                </div>
+            </div>
+
+            <div class="section-stats sales-summary-stats">
+                <div class="section-stat"><div><div class="section-stat__label">Recorded Days</div><div class="section-stat__val"><?= $section_stats['total']??0 ?></div></div></div>
+                <div class="section-stat"><div><div class="section-stat__label">Total Sales</div><div class="section-stat__val section-stat__val--green">₱<?= number_format($section_stats['sum']??0,0) ?></div></div></div>
+                <div class="section-stat"><div><div class="section-stat__label">Highest Sales Day</div><div class="section-stat__val">₱<?= number_format($section_stats['highest']??0,0) ?></div></div></div>
+                <div class="section-stat"><div><div class="section-stat__label">Lowest Sales Day</div><div class="section-stat__val">₱<?= number_format($section_stats['lowest']??0,0) ?></div></div></div>
+            </div>
+
+            <div class="section-chart-wrap">
+                <h3 class="section-chart-title">Total Sales per Day</h3>
+                <canvas id="sectionBarChart" height="80"></canvas>
+            </div>
+
+            <div class="orders-list-wrap">
+                <div class="orders-list__header"><h3>Daily Sales Archive</h3></div>
+                <div class="table-wrap">
+                    <table class="orders-table sales-archive-table">
+                        <thead><tr><th>Business Day</th><th>Petty Cash</th><th>Cash Sales</th><th>GCash Sales</th><th>Total Sales</th><th>Expense</th><th>Total Money</th></tr></thead>
+                        <tbody>
+                        <?php if (empty($sales_archive)): ?>
+                            <tr><td colspan="7" class="table-empty">No daily cash records for this month yet.</td></tr>
+                        <?php else: foreach ($sales_archive as $day): ?>
+                            <tr class="sales-day-row" tabindex="0" role="button" aria-label="View sales details for <?= date('F j, Y', strtotime($day['business_date'])) ?>"
+                                data-sales-day='<?= htmlspecialchars(json_encode($day), ENT_QUOTES, 'UTF-8') ?>'>
+                                <td><span class="sales-day-link"><?= date('M j, Y', strtotime($day['business_date'])) ?></span></td>
+                                <td>₱<?= number_format($day['petty_cash'],0) ?></td>
+                                <td>₱<?= number_format($day['cash_sales'],0) ?></td>
+                                <td>₱<?= number_format($day['gcash_sales'],0) ?></td>
+                                <td class="money-green">₱<?= number_format($day['total_sales'],0) ?></td>
+                                <td>₱<?= number_format($day['expense'],0) ?></td>
+                                <td class="money-green money-strong">₱<?= number_format($day['total_money'],0) ?></td>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="sales-detail-modal" id="salesDetailModal" aria-hidden="true">
+                <div class="sales-detail-modal__backdrop" data-sales-modal-close></div>
+                <div class="sales-detail-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="salesDetailTitle">
+                    <div class="sales-detail-modal__header">
+                        <div>
+                            <div class="sales-detail-modal__eyebrow">Business Day Details</div>
+                            <h3 id="salesDetailTitle">Sales Details</h3>
+                        </div>
+                        <button type="button" class="sales-detail-modal__close" data-sales-modal-close aria-label="Close">&times;</button>
+                    </div>
+                    <div class="sales-detail-modal__body">
+                        <div class="sales-detail-grid">
+                            <div><span>Petty Cash</span><strong id="detailPettyCash">₱0</strong></div>
+                            <div><span>Cash Sales</span><strong id="detailCashSales">₱0</strong></div>
+                            <div><span>GCash Sales</span><strong id="detailGcashSales">₱0</strong></div>
+                            <div><span>Total Sales</span><strong class="money-green" id="detailTotalSales">₱0</strong></div>
+                            <div><span>Total Expenses</span><strong id="detailExpenseTotal">₱0</strong></div>
+                            <div class="sales-detail-grid__total"><span>Total Money</span><strong id="detailTotalMoney">₱0</strong></div>
+                        </div>
+                        <div class="sales-detail-formula" id="detailFormula">₱0 + ₱0 − ₱0</div>
+                        <div class="sales-detail-expenses">
+                            <div class="sales-detail-expenses__head"><h4>Expenses</h4><span id="detailExpenseCount">0 entries</span></div>
+                            <div id="detailExpenseList" class="sales-detail-expenses__list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+            (() => {
+                const modal = document.getElementById('salesDetailModal');
+                if (!modal) return;
+                const peso = value => '₱' + Math.round(Number(value || 0)).toLocaleString('en-PH');
+                const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+                const fmtTime = raw => {
+                    if (!raw) return '—';
+                    const normalized = String(raw).replace(' ', 'T') + (String(raw).includes('Z') || /[+-]\d\d:\d\d$/.test(String(raw)) ? '' : 'Z');
+                    const d = new Date(normalized);
+                    if (Number.isNaN(d.getTime())) return raw;
+                    return new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).format(d);
+                };
+                const open = row => {
+                    let day;
+                    try { day = JSON.parse(row.dataset.salesDay); } catch (_) { return; }
+                    const date = new Date(day.business_date + 'T00:00:00');
+                    document.getElementById('salesDetailTitle').textContent = new Intl.DateTimeFormat('en-PH', { month:'long', day:'numeric', year:'numeric' }).format(date);
+                    document.getElementById('detailPettyCash').textContent = peso(day.petty_cash);
+                    document.getElementById('detailCashSales').textContent = peso(day.cash_sales);
+                    document.getElementById('detailGcashSales').textContent = peso(day.gcash_sales);
+                    document.getElementById('detailTotalSales').textContent = peso(day.total_sales);
+                    document.getElementById('detailExpenseTotal').textContent = peso(day.expense);
+                    document.getElementById('detailTotalMoney').textContent = peso(day.total_money);
+                    document.getElementById('detailFormula').textContent = `${peso(day.petty_cash)} + ${peso(day.total_sales)} − ${peso(day.expense)} = ${peso(day.total_money)}`;
+                    const expenses = Array.isArray(day.expenses) ? day.expenses : [];
+                    document.getElementById('detailExpenseCount').textContent = `${expenses.length} ${expenses.length === 1 ? 'entry' : 'entries'}`;
+                    const list = document.getElementById('detailExpenseList');
+                    list.innerHTML = expenses.length ? expenses.map((expense, index) => `
+                        <div class="sales-expense-item">
+                            <div><span class="sales-expense-item__number">${escapeHtml(expense.note || `Expense ${index + 1}`)}</span><span class="sales-expense-item__time">${fmtTime(expense.created_at)}</span></div>
+                            <strong>${peso(expense.amount)}</strong>
+                        </div>`).join('') : '<div class="sales-expense-empty">No expenses recorded for this business day.</div>';
+                    modal.classList.add('is-open');
+                    modal.setAttribute('aria-hidden', 'false');
+                    document.body.classList.add('modal-open');
+                    modal.querySelector('.sales-detail-modal__close').focus();
+                };
+                const close = () => { modal.classList.remove('is-open'); modal.setAttribute('aria-hidden', 'true'); document.body.classList.remove('modal-open'); };
+                document.querySelectorAll('.sales-day-row').forEach(row => {
+                    row.addEventListener('click', () => open(row));
+                    row.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(row); } });
+                });
+                modal.querySelectorAll('[data-sales-modal-close]').forEach(el => el.addEventListener('click', close));
+                document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('is-open')) close(); });
+            })();
+            </script>
+            <?php else: ?>
             <div class="section-view__top">
                 <h2 class="section-view__title"><?= ucfirst($selected_section) ?></h2>
                 <div class="section-view__date">
@@ -193,7 +324,7 @@
             </div>
 
             <div class="section-chart-wrap">
-                <h3 class="section-chart-title">Orders per Day</h3>
+                <h3 class="section-chart-title">Total Sales per Day</h3>
                 <canvas id="sectionBarChart" height="80"></canvas>
             </div>
 
@@ -244,8 +375,6 @@
                             $discount      = (float)($o['discount']           ?? 0);
                             $subtotal      = (float)($o['subtotal']           ?? $o['total']);
                             $refund        = (float)($o['refund_amount']      ?? 0);
-                            $gcashRef      = $o['gcash_reference']            ?? '';
-                            $gcashExtra    = $o['gcash_reference_extra']      ?? '';
                             $gcashExtraAmt = (float)($o['gcash_extra_amount'] ?? 0);
 
                             $ordered_at_fmt = date('M j, Y g:i A', strtotime($o['created_at']));
@@ -262,13 +391,11 @@
                             data-refund-amount="<?= $refund ?>"
                             data-served-at="<?= htmlspecialchars($served_at_fmt, ENT_QUOTES, 'UTF-8') ?>"
                             data-ordered-at="<?= htmlspecialchars($ordered_at_fmt, ENT_QUOTES, 'UTF-8') ?>"
-                            data-gcash-ref="<?= htmlspecialchars($gcashRef, ENT_QUOTES, 'UTF-8') ?>"
-                            data-gcash-ref-extra="<?= htmlspecialchars($gcashExtra, ENT_QUOTES, 'UTF-8') ?>"
                             data-gcash-extra-amount="<?= $gcashExtraAmt ?>"
                         >
-                            <td><?= (int)$o['beeper_number'] ?></td>
+                            <td><?= !empty($o['beeper_number']) ? (int)$o['beeper_number'] : (($o['order_type'] ?? '') === 'delivery' ? htmlspecialchars($o['customer_name'] ?? '—') : '—') ?></td>
                             <td><?= $display_dt ?></td>
-                            <td><?= $o['order_type']==='dine-in'?'Dine in':'Take out' ?></td>
+                            <td><?= ['dine-in'=>'Dine in','take-out'=>'Take out','delivery'=>'Delivery','pick-up'=>'Pick up'][$o['order_type']] ?? ucfirst($o['order_type']) ?></td>
                             <td><?= ucfirst($o['payment_method']) ?></td>
                             <td>₱<?= number_format($o['total'],0) ?></td>
                             <td><span class="status-badge status-<?= $o['status'] ?>"><?= ucfirst($o['status']) ?></span></td>
@@ -279,6 +406,7 @@
                     </table>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
 
         <?php else: ?>
@@ -303,34 +431,61 @@
             </div>
         </div>
 
-        <section class="overview-section">
-            <p class="overview-label">Daily Sales Overview</p>
-            <div class="overview-cards">
-                <div class="overview-card">
-                    <div class="ov-icon-wrap"><img src="<?= $base_url ?>assets/images/sales_icon.png" alt="" class="ov-icon-img"></div>
-                    <div class="ov-text">
-                        <div class="ov-label">Total Sales per Day</div>
-                        <div class="ov-value">₱<?= number_format($today_data['s'],0) ?></div>
-                        <div class="ov-sub"><?= date('M j, Y', strtotime($today)) ?> (Business Day)</div>
-                    </div>
+        <section class="overview-section finance-overview">
+            <div class="finance-overview__header">
+                <div>
+                    <p class="overview-label">Today’s Business Day</p>
+                    <div class="finance-date"><?= date('F j, Y', strtotime($today)) ?> · 3:00 PM to next day 2:00 AM</div>
                 </div>
-                <div class="overview-card">
-                    <div class="ov-icon-wrap"><img src="<?= $base_url ?>assets/images/orders_icon.png" alt="" class="ov-icon-img"></div>
-                    <div class="ov-text">
-                        <div class="ov-label">Number of Orders per Day</div>
-                        <div class="ov-value"><?= $today_data['c'] ?></div>
-                        <div class="ov-sub"><?= date('M j, Y', strtotime($today)) ?> (Business Day)</div>
-                    </div>
+                <?php if (!$business_open): ?><span class="finance-closed">Business Closed · New day starts at 3:00 PM</span><?php elseif (session('cash_record_saved')): ?><span class="finance-saved">Petty cash saved</span><?php elseif (session('expense_added')): ?><span class="finance-saved">Expense added</span><?php endif; ?>
+            </div>
+            <div class="finance-grid">
+                <div class="finance-card finance-card--editable finance-card--cash-entry">
+                    <form class="finance-entry-form" method="POST" action="{{ route('statistics.daily-cash') }}">
+                        @csrf
+                        <input type="hidden" name="business_date" value="<?= $today ?>">
+                        <label for="petty_cash">Petty Cash</label>
+                        <div class="money-input"><span>₱</span><input id="petty_cash" name="petty_cash" type="number" min="0" step="1" value="<?= (int)round($today_cash_record['petty_cash']??0) ?>" required <?= !$business_open ? 'disabled' : '' ?>></div>
+                        <span class="finance-help"><?= $business_open ? 'Starting money for this business day' : 'Closed — previous day is available in Sales Archive' ?></span>
+                        <button type="submit" class="finance-save-btn" <?= !$business_open ? 'disabled' : '' ?>>Save Petty Cash</button>
+                    </form>
+
+                    <div class="expense-divider"></div>
+                    <form class="finance-entry-form" method="POST" action="{{ route('statistics.expenses.store') }}">
+                        @csrf
+                        <input type="hidden" name="business_date" value="<?= $today ?>">
+                        <label for="expense_amount">Add Expense</label>
+                        <div class="money-input"><span>₱</span><input id="expense_amount" name="amount" type="number" min="1" step="1" placeholder="0" required <?= !$business_open ? 'disabled' : '' ?>></div>
+                        <label for="expense_note">Note</label>
+                        <input class="expense-note-input" id="expense_note" name="note" type="text" maxlength="255" placeholder="e.g. Ingredients, delivery fee, ice" required <?= !$business_open ? 'disabled' : '' ?>>
+                        <span class="finance-help">Add what the expense was for. You can add as many expenses as needed.</span>
+                        <button type="submit" class="finance-save-btn" <?= !$business_open ? 'disabled' : '' ?>>Add Expense</button>
+                    </form>
+                    <div class="expense-total-row"><span>Today's Expenses</span><strong>₱<?= number_format($today_expense_total,0) ?></strong></div>
+                    <?php if (!empty($today_expenses)): ?>
+                        <div class="expense-list">
+                            <?php foreach ($today_expenses as $expense): ?>
+                                <div class="expense-list__item"><span><?= e($expense['note'] ?? 'Expense') ?></span><b>₱<?= number_format($expense['amount'],0) ?></b></div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
-                <div class="overview-card">
-                    <div class="ov-icon-wrap"><img src="<?= $base_url ?>assets/images/monthsales_icon.png" alt="" class="ov-icon-img"></div>
-                    <div class="ov-text">
-                        <div class="ov-label">Total Sales this Month</div>
-                        <div class="ov-value">₱<?= number_format($monthly['total_sales'],0) ?></div>
-                        <div class="ov-sub"><?= $months_list[$selected_month] ?> <?= $selected_year ?></div>
-                    </div>
+
+                <div class="finance-card">
+                    <span class="finance-card__label">Sales</span>
+                    <strong class="finance-card__total">₱<?= number_format($today_data['s'],0) ?></strong>
+                    <div class="sales-split"><span>Cash <b>₱<?= number_format($today_data['cash_sales'],0) ?></b></span><span>GCash <b>₱<?= number_format($today_data['gcash_sales'],0) ?></b></span></div>
+                    <span class="finance-help">Automatically computed from served orders</span>
+                </div>
+
+                <div class="finance-card finance-card--total">
+                    <div class="finance-formula">Petty Cash + Sales − Expense</div>
+                    <div class="finance-breakdown">₱<?= number_format($today_cash_record['petty_cash']??0,0) ?> + ₱<?= number_format($today_data['s'],0) ?> − ₱<?= number_format($today_expense_total,0) ?></div>
+                    <span class="finance-card__label">Total Money</span>
+                    <strong class="finance-card__total">₱<?= number_format($today_total_money,0) ?></strong>
                 </div>
             </div>
+            @if ($errors->any())<div class="finance-error">{{ $errors->first() }}</div>@endif
         </section>
 
         <div class="dash-row">
@@ -434,10 +589,10 @@
         window.location.href = url.toString();
     }
 </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-<script src="<?= $base_url ?>modules/statistics/statistics.js"></script>
-<script src="/assets/js/pwa_register.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=20261015-xpad1"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js?v=20261015-xpad1"></script>
+<script src="<?= $base_url ?>modules/statistics/statistics.js?v=20261015-xpad1"></script>
+<script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
 
 </body>
 </html>
