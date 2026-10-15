@@ -129,7 +129,8 @@ input:focus { border-color: #C8A84B; }
 }
 .signup-link a:hover { text-decoration: underline; }
 </style>
-    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-ui3') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 
 <body>
@@ -192,7 +193,7 @@ function togglePassword() {
 }
 </script>
 
-<script src="{{ asset('assets/js/pwa_register.js') }}"></script>
+<script src="{{ asset('assets/js/pwa_register.js?v=20261015-ui3') }}"></script>
 
 </body>
 </html>

@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/orders/update', [OrderController::class, 'update'])->name('orders.update');
     Route::post('/orders/serve', [OrderController::class, 'serve'])->name('orders.serve');
     Route::post('/orders/void', [OrderController::class, 'void'])->name('orders.void');
+    Route::get('/order-notifications', [OrderController::class, 'notifications'])->name('orders.notifications');
 
     Route::get('/served', [ServedController::class, 'index'])->name('served');
 

@@ -4,8 +4,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Twist &amp; Roll POS</title>
-    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-delivery-notify1">
     <script>
         const DISCOUNT_MAP = <?= json_encode($discount_map) ?>;
         const MENU_ITEMS   = <?= json_encode(array_column($menu_items, null, 'id')) ?>;
@@ -16,7 +16,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
-    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-xpad1') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 <body>
 
@@ -189,8 +190,8 @@
         </div>
 
         <div class="order-panel__beeper" id="beeper-wrap">
-            <label class="beeper-label" for="beeper-input">Beeper #</label>
-            <input type="number" class="beeper-input" id="beeper-input" min="1" max="16" placeholder="Enter number (1-16)">
+            <label class="beeper-label" for="beeper-input" id="beeper-label">Beeper #</label>
+            <input type="text" inputmode="numeric" class="beeper-input" id="beeper-input" maxlength="100" placeholder="Enter number (1-16)" autocomplete="off">
         </div>
         <p class="beeper-error-msg" id="beeper-error">Beeper number is required.</p>
 
@@ -253,9 +254,13 @@
     </section>
 </main>
 
-    <script src="<?= $base_url ?>assets/js/main.js"></script>
-    <script src="<?= $base_url ?>assets/js/escpos_bluetooth.js"></script>
-    <script src="<?= $base_url ?>modules/homepage/homepage.js"></script>
-    <script src="/assets/js/pwa_register.js"></script>
+    <script src="<?= $base_url ?>assets/js/main.js?v=20261015-xpad1"></script>
+    <script src="<?= $base_url ?>assets/js/escpos_bluetooth.js?v=20261015-xpad1"></script>
+    <script src="<?= $base_url ?>modules/homepage/homepage.js?v=20261015-delivery-notify1"></script>
+    <script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
+<?php if ($role === 'cashier'): ?>
+<script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>
+<script src="{{ asset('assets/js/order-notifications.js?v=20261015-bell1') }}"></script>
+<?php endif; ?>
 </body>
 </html>

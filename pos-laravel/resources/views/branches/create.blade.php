@@ -53,7 +53,8 @@ input:focus { border-color: #C8A84B; }
 .alert--success { background: #e8f4ec; color: #1c6b38; border: 1px solid #b0ddbf; }
 .warn { font-size: 12px; color: #7A7A5A; text-align: center; }
 </style>
-    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-ui3') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 <body>
 

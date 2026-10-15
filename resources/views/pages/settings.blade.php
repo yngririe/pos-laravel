@@ -6,19 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings — Twist &amp; Roll</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/settings/settings.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/settings/settings.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 <body>
 <header class="navbar">
-    <a href="{{ route('home') }}" class="navbar__logo-link"><img src="<?= $base_url ?>assets/images/logo.png" class="navbar__logo-img" alt="Twist & Roll"></a>
+    <div class="navbar__logo-wrap">
+        <a href="{{ route('home') }}" class="navbar__logo-link"><img src="<?= $base_url ?>assets/images/logo.png" class="navbar__logo-img" alt="Twist & Roll"></a>
+        <span class="branch-badge"><?= htmlspecialchars($branch_name) ?></span>
+    </div>
     <nav class="navbar__nav">
         <a href="{{ route('home') }}" class="nav-link">Home</a>
         <a href="{{ route('orders') }}" class="nav-link">Orders</a>
         <a href="{{ route('served') }}" class="nav-link">Served</a>
         <a href="{{ route('statistics') }}" class="nav-link">Statistics</a>
-        <a href="{{ route('profile') }}" class="nav-link">Profile</a>
     </nav>
     <div class="navbar__right">
         <div class="navbar__datetime"><div id="current-day" class="navbar__day"></div><div id="current-date" class="navbar__date"></div></div>
@@ -135,6 +138,6 @@
     </div>
 </div>
 <script>window.SETTINGS_MENU_STORE_URL = @json(route('settings.menu.store'));</script>
-<script src="<?= $base_url ?>modules/settings/settings.js"></script>
+<script src="<?= $base_url ?>modules/settings/settings.js?v=20261015-xpad1"></script>
 </body>
 </html>

@@ -9,7 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Admin-only. A "business day" runs 3:00 PM -> 3:00 PM Manila time, see Pos::bizDate().
+ * Admin-only. The live business window is 3:00 PM -> 2:00 AM Manila time.
+ * Records are grouped under the calendar date on which that 3:00 PM shift started.
  */
 class StatisticsController extends Controller
 {
@@ -41,35 +42,45 @@ class StatisticsController extends Controller
         ];
         $year_range = range(2026, 2036);
 
-        // Before 3 PM we are still in the previous business day.
+        // Live shift: 3:00 PM through 1:59:59 AM. From 2:00 AM until 2:59:59 PM
+        // the live finance panel is closed/reset; the completed shift remains in Sales Archive.
+        $business_open = $nowPht->hour >= 15 || $nowPht->hour < 2;
         $bizNow = $nowPht->copy();
-        if ($bizNow->hour < 15) {
+        if ($nowPht->hour < 2) {
             $bizNow->subDay();
         }
         $today = $bizNow->format('Y-m-d');
 
         // ── Dashboard ──────────────────────────────────────────────────────
-        $today_data = Pos::one("
-            SELECT COUNT(*) as c,
-                   COALESCE(SUM(total),0) as s,
-                   COALESCE(SUM(CASE WHEN payment_method='cash' THEN total ELSE 0 END),0) as cash_sales,
-                   COALESCE(SUM(CASE WHEN payment_method='gcash' THEN total ELSE 0 END),0) as gcash_sales
-            FROM orders
-            WHERE $BIZ_DATE = ? AND status = 'served' $BRANCH_ONLY
-        ", [$today]);
+        $emptyTodayData = ['c' => 0, 's' => 0, 'cash_sales' => 0, 'gcash_sales' => 0];
+        if ($business_open) {
+            $today_data = Pos::one("
+                SELECT COUNT(*) as c,
+                       COALESCE(SUM(total),0) as s,
+                       COALESCE(SUM(CASE WHEN payment_method='cash' THEN total ELSE 0 END),0) as cash_sales,
+                       COALESCE(SUM(CASE WHEN payment_method='gcash' THEN total ELSE 0 END),0) as gcash_sales
+                FROM orders
+                WHERE $BIZ_DATE = ? AND status = 'served' $BRANCH_ONLY
+            ", [$today]) ?? $emptyTodayData;
 
-        $today_cash_record = Pos::one("
-            SELECT petty_cash
-            FROM daily_cash_records
-            WHERE branch_id = ? AND business_date = ?
-        ", [$branch_id, $today]) ?? ['petty_cash' => 0];
+            $today_cash_record = Pos::one("
+                SELECT petty_cash
+                FROM daily_cash_records
+                WHERE branch_id = ? AND business_date = ?
+            ", [$branch_id, $today]) ?? ['petty_cash' => 0];
 
-        $today_expenses = Pos::all("
-            SELECT id, amount, created_at
-            FROM daily_expenses
-            WHERE branch_id = ? AND business_date = ?
-            ORDER BY created_at DESC, id DESC
-        ", [$branch_id, $today]);
+            $today_expenses = Pos::all("
+                SELECT id, amount, note, created_at
+                FROM daily_expenses
+                WHERE branch_id = ? AND business_date = ?
+                ORDER BY created_at DESC, id DESC
+            ", [$branch_id, $today]);
+        } else {
+            // Do not carry yesterday's figures into the live panel after closing time.
+            $today_data = $emptyTodayData;
+            $today_cash_record = ['petty_cash' => 0];
+            $today_expenses = [];
+        }
         $today_expense_total = array_sum(array_map(fn ($row) => (float) $row['amount'], $today_expenses));
         $today_total_money = (float)$today_cash_record['petty_cash'] + (float)$today_data['s'] - $today_expense_total;
 
@@ -178,22 +189,33 @@ class StatisticsController extends Controller
         $sales_archive = [];
 
         if ($sidebar_open && $selected_section === 'sales') {
+            // Build the archive from every date that has petty cash, an expense, or a served order.
+            // This keeps a completed business day in Files even when no petty cash was entered.
             $sales_archive = Pos::all("
-                SELECT d.business_date, d.petty_cash,
-                       COALESCE((SELECT SUM(e.amount) FROM daily_expenses e WHERE e.branch_id=d.branch_id AND e.business_date=d.business_date),0) as expense,
-                       COALESCE(SUM(CASE WHEN o.status='served' AND o.payment_method='cash' THEN o.total ELSE 0 END),0) as cash_sales,
-                       COALESCE(SUM(CASE WHEN o.status='served' AND o.payment_method='gcash' THEN o.total ELSE 0 END),0) as gcash_sales,
-                       COALESCE(SUM(CASE WHEN o.status='served' THEN o.total ELSE 0 END),0) as total_sales
-                FROM daily_cash_records d
-                LEFT JOIN orders o ON o.branch_id=d.branch_id
-                    AND DATE(CONVERT_TZ(o.created_at,'+00:00','+08:00') - INTERVAL 15 HOUR)=d.business_date
-                WHERE d.branch_id=? AND YEAR(d.business_date)=? AND MONTH(d.business_date)=?
-                GROUP BY d.id,d.business_date,d.petty_cash
-                ORDER BY d.business_date DESC
-            ", [$branch_id, $selected_year, $selected_month]);
+                SELECT days.business_date,
+                       COALESCE((SELECT d.petty_cash FROM daily_cash_records d WHERE d.branch_id=? AND d.business_date=days.business_date LIMIT 1),0) as petty_cash,
+                       COALESCE((SELECT SUM(e.amount) FROM daily_expenses e WHERE e.branch_id=? AND e.business_date=days.business_date),0) as expense,
+                       COALESCE((SELECT SUM(o.total) FROM orders o WHERE o.branch_id=? AND o.status='served' AND o.payment_method='cash' AND DATE(CONVERT_TZ(o.created_at,'+00:00','+08:00') - INTERVAL 15 HOUR)=days.business_date),0) as cash_sales,
+                       COALESCE((SELECT SUM(o.total) FROM orders o WHERE o.branch_id=? AND o.status='served' AND o.payment_method='gcash' AND DATE(CONVERT_TZ(o.created_at,'+00:00','+08:00') - INTERVAL 15 HOUR)=days.business_date),0) as gcash_sales,
+                       COALESCE((SELECT SUM(o.total) FROM orders o WHERE o.branch_id=? AND o.status='served' AND DATE(CONVERT_TZ(o.created_at,'+00:00','+08:00') - INTERVAL 15 HOUR)=days.business_date),0) as total_sales
+                FROM (
+                    SELECT business_date FROM daily_cash_records WHERE branch_id=?
+                    UNION
+                    SELECT business_date FROM daily_expenses WHERE branch_id=?
+                    UNION
+                    SELECT DATE(CONVERT_TZ(created_at,'+00:00','+08:00') - INTERVAL 15 HOUR) as business_date FROM orders WHERE branch_id=? AND status='served'
+                ) days
+                WHERE YEAR(days.business_date)=? AND MONTH(days.business_date)=?
+                ORDER BY days.business_date DESC
+            ", [$branch_id, $branch_id, $branch_id, $branch_id, $branch_id, $branch_id, $branch_id, $branch_id, $selected_year, $selected_month]);
+
+            // The active shift stays in the live panel. It becomes part of Files/Sales Archive after closing at 2:00 AM.
+            if ($business_open) {
+                $sales_archive = array_values(array_filter($sales_archive, fn ($row) => $row['business_date'] !== $today));
+            }
 
             $archive_expenses = Pos::all("
-                SELECT id, business_date, amount, created_at
+                SELECT id, business_date, amount, note, created_at
                 FROM daily_expenses
                 WHERE branch_id=? AND YEAR(business_date)=? AND MONTH(business_date)=?
                 ORDER BY business_date DESC, created_at ASC, id ASC
@@ -226,7 +248,7 @@ class StatisticsController extends Controller
             $order_by = $selected_section === 'served' ? 'o.served_at DESC' : 'o.created_at DESC';
 
             $section_orders = Pos::localizeRows(Pos::all("
-                SELECT o.id, o.beeper_number,
+                SELECT o.id, o.beeper_number, o.customer_name,
                        o.created_at, o.served_at,
                        o.order_type, o.payment_method,
                        o.gcash_reference, o.gcash_reference_extra, o.gcash_extra_amount,
@@ -274,7 +296,7 @@ class StatisticsController extends Controller
         $bar_json     = json_encode($bar_data);
 
         return view('pages.statistics', $shared + compact(
-            'today', 'today_data', 'today_cash_record', 'today_expenses', 'today_expense_total', 'today_total_money', 'monthly', 'best_items', 'least_items', 'img_map',
+            'today', 'business_open', 'today_data', 'today_cash_record', 'today_expenses', 'today_expense_total', 'today_total_money', 'monthly', 'best_items', 'least_items', 'img_map',
             'daily_data', 'weekly_raw', 'monthly_trend',
             'annual_by_month', 'annual_total', 'voids_by_month', 'sales_days_by_month', 'sales_archive',
             'section_orders', 'section_stats', 'high_date', 'low_date', 'bar_data',
@@ -292,6 +314,13 @@ class StatisticsController extends Controller
             'petty_cash' => ['required', 'numeric', 'min:0', 'max:999999999.99'],
         ]);
 
+        $nowPht = Carbon::now(Pos::TZ);
+        $businessOpen = $nowPht->hour >= 15 || $nowPht->hour < 2;
+        $activeDate = ($nowPht->hour < 2 ? $nowPht->copy()->subDay() : $nowPht)->format('Y-m-d');
+        if (!$businessOpen || $data['business_date'] !== $activeDate) {
+            return back()->withErrors(['business_day' => 'Petty cash can only be changed during the active business hours (3:00 PM–2:00 AM).']);
+        }
+
         $key = ['branch_id' => Pos::branchId(), 'business_date' => $data['business_date']];
         DB::table('daily_cash_records')->updateOrInsert($key, [
             'petty_cash' => round((float)$data['petty_cash'], 2),
@@ -308,12 +337,21 @@ class StatisticsController extends Controller
         $data = $request->validate([
             'business_date' => ['required', 'date'],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999.99'],
+            'note' => ['required', 'string', 'max:255'],
         ]);
+
+        $nowPht = Carbon::now(Pos::TZ);
+        $businessOpen = $nowPht->hour >= 15 || $nowPht->hour < 2;
+        $activeDate = ($nowPht->hour < 2 ? $nowPht->copy()->subDay() : $nowPht)->format('Y-m-d');
+        if (!$businessOpen || $data['business_date'] !== $activeDate) {
+            return back()->withErrors(['business_day' => 'Expenses can only be added during the active business hours (3:00 PM–2:00 AM).']);
+        }
 
         DB::table('daily_expenses')->insert([
             'branch_id' => Pos::branchId(),
             'business_date' => $data['business_date'],
             'amount' => round((float)$data['amount'], 2),
+            'note' => trim($data['note']),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -350,7 +388,7 @@ class StatisticsController extends Controller
         $branch_where_o = $merge ? '1=1' : "o.branch_id = $branch_id";
 
         // ── Orders ─────────────────────────────────────────────────────────
-        $orderCols = "o.id, o.branch_id, o.beeper_number, o.order_type, o.payment_method,
+        $orderCols = "o.id, o.branch_id, o.beeper_number, o.customer_name, o.order_type, o.payment_method,
                       o.gcash_reference, o.gcash_reference_extra, o.gcash_extra_amount,
                       o.subtotal, o.discount, o.refund_amount, o.total, o.change_amount,
                       o.status, o.created_at, o.served_at,
@@ -496,7 +534,7 @@ class StatisticsController extends Controller
         // ── Per-branch sheets (merge mode) ─────────────────────────────────
         $branches_data = [];
         if ($merge) {
-            $branchCols = "o.id, o.beeper_number, o.order_type, o.payment_method,
+            $branchCols = "o.id, o.beeper_number, o.customer_name, o.order_type, o.payment_method,
                            o.subtotal, o.discount, o.total, o.status, o.created_at, o.served_at,
                            GROUP_CONCAT(CONCAT(oi.quantity,'x ',oi.name) ORDER BY oi.id SEPARATOR ', ') AS items_str";
 

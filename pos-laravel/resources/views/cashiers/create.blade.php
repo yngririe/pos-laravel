@@ -173,7 +173,8 @@ input:-webkit-autofill {
 .pw-req.pass { color: #1c6b38; }
 .pw-req__icon { font-size: 11px; font-weight: 700; }
 </style>
-    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-ui3') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 <body>
 

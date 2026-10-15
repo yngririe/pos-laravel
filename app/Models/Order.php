@@ -12,7 +12,7 @@ class Order extends Model
     // created_at and served_at are stored in UTC. They are left as plain strings
     // on purpose: served_at is written explicitly and converted for display.
     protected $fillable = [
-        'branch_id', 'beeper_number', 'order_type', 'payment_method', 'amount_paid',
+        'branch_id', 'created_by_user_id', 'beeper_number', 'customer_name', 'order_type', 'payment_method', 'amount_paid',
         'subtotal', 'discount', 'total', 'change_amount',
         'gcash_reference', 'gcash_reference_extra', 'gcash_extra_amount',
         'refund_amount', 'status', 'served_at',

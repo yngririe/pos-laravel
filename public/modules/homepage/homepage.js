@@ -23,6 +23,7 @@
     const beeperInput     = document.getElementById('beeper-input');
     const beeperWrap      = document.getElementById('beeper-wrap');
     const beeperError     = document.getElementById('beeper-error');
+    const beeperLabel     = document.getElementById('beeper-label');
     const changeDisplay   = document.getElementById('change-display');
     const changeAmount    = document.getElementById('change-amount');
     const toastContainer  = document.getElementById('toast-container');
@@ -119,12 +120,36 @@
         orderTypeBadgeIcon.src = BASE_URL + (type === 'dine-in' ? 'assets/images/dine-in.png' : 'assets/images/take-out.png');
     }
 
+    function syncBeeperForOrderType(type) {
+        const delivery = type === 'delivery';
+        const optionalBeeper = type === 'pick-up';
+
+        beeperWrap.style.display = '';
+        beeperError.classList.remove('visible');
+        beeperWrap.classList.remove('beeper-error');
+
+        if (delivery) {
+            beeperLabel.textContent = 'Customer name';
+            beeperInput.value = '';
+            beeperInput.inputMode = 'text';
+            beeperInput.placeholder = 'Enter customer name';
+        } else if (optionalBeeper) {
+            beeperLabel.textContent = 'Beeper #';
+            beeperInput.value = '';
+            beeperInput.inputMode = 'numeric';
+            beeperInput.placeholder = 'Optional (1-16)';
+        } else {
+            beeperLabel.textContent = 'Beeper #';
+            beeperInput.inputMode = 'numeric';
+            beeperInput.placeholder = 'Enter number (1-16)';
+            beeperInput.value = getNextBeeper();
+        }
+    }
+
     function chooseOrderType(type) {
         state.orderType = type;
         updateOrderTypeBadge(type);
-        beeperInput.value = getNextBeeper();
-        beeperWrap.classList.remove('beeper-error');
-        beeperError.classList.remove('visible');
+        syncBeeperForOrderType(type);
         showScreen('order');
     }
 
@@ -266,9 +291,14 @@
         const hasItems  = state.order.length > 0;
         const beeper    = beeperInput.value.trim();
         const isCash    = state.paymentMethod === 'cash';
+        const beeperRequired = state.orderType === 'dine-in' || state.orderType === 'take-out';
+        const beeperOptional = state.orderType === 'pick-up';
+        const deliveryNameRequired = state.orderType === 'delivery';
 
         let canPlace = hasItems;
-        if (!beeper || parseInt(beeper) < 1 || parseInt(beeper) > BEEPER_MAX) canPlace = false;
+        if (beeperRequired && (!beeper || parseInt(beeper) < 1 || parseInt(beeper) > BEEPER_MAX)) canPlace = false;
+        if (beeperOptional && beeper && (parseInt(beeper) < 1 || parseInt(beeper) > BEEPER_MAX)) canPlace = false;
+        if (deliveryNameRequired && beeper.length < 1) canPlace = false;
         if (isCash) {
             const amount = parseFloat(amountInput.value) || 0;
             if (amount <= 0 || amount < total) canPlace = false;
@@ -322,7 +352,7 @@
     // ── Beeper input ────────────────────────────────────────────────────────
     beeperInput.addEventListener('input', () => {
         // Hard-clamp: strip anything that would push the value past 16
-        if (beeperInput.value !== '') {
+        if (state.orderType !== 'delivery' && beeperInput.value !== '') {
             let num = parseInt(beeperInput.value, 10);
             if (!isNaN(num) && num > BEEPER_MAX) {
                 beeperInput.value = String(BEEPER_MAX);
@@ -331,12 +361,21 @@
 
         const val = beeperInput.value.trim();
         const num = parseInt(val, 10);
-        if (!val || num < 1 || num > BEEPER_MAX) {
+        const required = state.orderType === 'dine-in' || state.orderType === 'take-out';
+        if (state.orderType === 'delivery') {
+            const missingName = val.length === 0;
+            beeperWrap.classList.toggle('beeper-error', missingName);
+            beeperError.classList.toggle('visible', missingName);
+            beeperError.textContent = 'Customer name is required for delivery.';
+            updatePlaceOrderState();
+            return;
+        }
+        if ((required && !val) || (val && (num < 1 || num > BEEPER_MAX))) {
             beeperWrap.classList.add('beeper-error');
             beeperError.classList.add('visible');
-            beeperError.textContent = (num > BEEPER_MAX)
-                ? `Beeper number must be 1-${BEEPER_MAX}.`
-                : 'Beeper number is required.';
+            beeperError.textContent = (!val && required)
+                ? 'Beeper number is required.'
+                : `Beeper number must be 1-${BEEPER_MAX}.`;
         } else {
             beeperWrap.classList.remove('beeper-error');
             beeperError.classList.remove('visible');
@@ -481,12 +520,23 @@
         const isCash   = state.paymentMethod === 'cash';
         const amount   = parseFloat(amountInput.value) || 0;
 
-        if (!beeper || parseInt(beeper) < 1 || parseInt(beeper) > BEEPER_MAX) {
+        const beeperRequired = state.orderType === 'dine-in' || state.orderType === 'take-out';
+        const beeperOptional = state.orderType === 'pick-up';
+        const delivery = state.orderType === 'delivery';
+        if (delivery && !beeper) {
             beeperWrap.classList.add('beeper-error');
             beeperError.classList.add('visible');
-            beeperError.textContent = (parseInt(beeper) > BEEPER_MAX)
-                ? `Beeper number must be 1-${BEEPER_MAX}.`
-                : 'Beeper number is required.';
+            beeperError.textContent = 'Customer name is required for delivery.';
+            beeperInput.focus();
+            return;
+        }
+        if ((beeperRequired && (!beeper || parseInt(beeper) < 1 || parseInt(beeper) > BEEPER_MAX)) ||
+            (beeperOptional && beeper && (parseInt(beeper) < 1 || parseInt(beeper) > BEEPER_MAX))) {
+            beeperWrap.classList.add('beeper-error');
+            beeperError.classList.add('visible');
+            beeperError.textContent = beeperRequired && !beeper
+                ? 'Beeper number is required.'
+                : `Beeper number must be 1-${BEEPER_MAX}.`;
             beeperInput.focus();
             return;
         }
@@ -499,7 +549,8 @@
         const change = isCash ? (amount - total) : 0;
 
         const payload = {
-            beeper_number:   parseInt(beeper),
+            beeper_number:   state.orderType === 'delivery' || !beeper ? null : parseInt(beeper, 10),
+            customer_name:   state.orderType === 'delivery' ? beeper : null,
             order_type:      state.orderType,
             payment_method:  state.paymentMethod,
             amount_paid:     isCash ? amount : total,
@@ -537,8 +588,12 @@
                 showScreen('start');
 
                 // ── Advance the auto beeper counter ──────────────────────
-                const usedBeeper = parseInt(beeper, 10);
-                if (!isNaN(usedBeeper)) setNextBeeper(usedBeeper + 1);
+                // Any successfully assigned beeper advances the automatic suggestion.
+                // This includes an optional beeper manually assigned to Pick Up.
+                if (state.orderType !== 'delivery' && beeper) {
+                    const usedBeeper = parseInt(beeper, 10);
+                    if (!isNaN(usedBeeper)) setNextBeeper(usedBeeper + 1);
+                }
 
                 showToast('Order has been placed!', 'success');
 

@@ -1,0 +1,440 @@
+/* =============================================================
+   TWIST & ROLL POS — mobile.css
+   Phone / narrow-screen pass. Loaded LAST on every page so it
+   can settle conflicts between the per-page stylesheets.
+
+   Scope: max-width 760px only. Tablet and desktop layouts are
+   not touched (all rules below sit inside the media query,
+   except the harmless safety nets right after this comment).
+
+   What it fixes, in short:
+   1. Page scroll  — body used to be overflow:hidden + 100% height,
+      so content below the fold (and under the mobile browser
+      toolbar) was unreachable. The page itself now scrolls.
+   2. Navbar       — several stylesheets fought over it. One clean
+      two-row layout: logo + clock + avatar, then the nav pill.
+   3. Per-page     — POS menu/cart, orders, served, statistics
+      (sidebar, tables, modals), profile, settings, auth forms.
+   ============================================================= */
+
+/* ── Safety nets (all widths, no layout change) ─────────────── */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+img, svg, video, canvas { max-width: 100%; }
+
+@media (max-width: 760px) {
+
+    /* ── 1. PAGE SCROLL ─────────────────────────────────────── */
+    html {
+        height: auto !important;
+        min-height: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Keep body unclipped so the document scrolls and the sticky
+       navbar keeps working. Pages that lock scrolling for a modal
+       (body.modal-open / body.confirm-open) are left alone. */
+    body:not(.modal-open):not(.confirm-open) {
+        height: auto !important;
+        min-height: 100vh;
+        min-height: 100dvh;
+        overflow: visible !important;
+    }
+
+    /* Inner scrollers become normal flowing blocks; the page scrolls. */
+    .home-main,
+    .orders-page,
+    .served-page,
+    .stats-wrapper,
+    .stats-main {
+        flex: none !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    /* ── 2. NAVBAR ──────────────────────────────────────────── */
+    .navbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        height: auto !important;
+        min-height: 0 !important;
+        padding: 8px 12px !important;
+        gap: 8px 10px !important;
+    }
+
+    .navbar__logo-wrap,
+    .navbar__logo-link {
+        order: 1;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        flex: 0 1 auto;
+    }
+
+    .navbar__logo-img {
+        height: 38px !important;
+        max-width: 44vw;
+        object-fit: contain;
+    }
+
+    .navbar__right {
+        order: 2;
+        margin-left: auto;
+        gap: 10px !important;
+        min-width: 0;
+    }
+
+    .navbar__datetime {
+        min-width: 0;
+        text-align: right;
+    }
+
+    .navbar__day { font-size: 12px !important; line-height: 1.25; }
+
+    .navbar__date {
+        font-size: 10px !important;
+        line-height: 1.25;
+        max-width: 52vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .profile-icon { width: 36px !important; height: 36px !important; }
+
+    /* Nav pill: always its own full-width row, links share it equally. */
+    .navbar__nav {
+        order: 3;
+        position: static !important;
+        transform: none !important;
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        height: auto !important;
+        min-height: 42px;
+        padding: 4px !important;
+        gap: 2px !important;
+        flex-wrap: nowrap !important;
+        justify-content: stretch !important;
+        border-radius: 999px !important;
+        box-shadow: none !important;
+    }
+
+    .nav-link {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        min-width: 0 !important;
+        height: 34px !important;
+        padding: 0 6px !important;
+        font-size: 13px !important;
+    }
+
+    /* Profile dropdown must never run off-screen and needs touch-size rows. */
+    .profile-dropdown {
+        right: 0;
+        min-width: 180px;
+        max-width: calc(100vw - 24px);
+    }
+    .profile-dropdown .dropdown-item,
+    .profile-dropdown .logout-btn {
+        min-height: 44px;
+        font-size: 13px;
+    }
+
+    .toast-container {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        align-items: stretch;
+    }
+
+    /* ── 3. HOME / POS ──────────────────────────────────────── */
+    .screen--start,
+    .screen--type {
+        height: auto !important;
+        min-height: calc(100vh - 110px);
+        min-height: calc(100dvh - 110px);
+        overflow: visible !important;
+        padding: 20px 16px 32px !important;
+    }
+
+    .start-hero__title { margin-top: clamp(16px, 5vh, 48px); }
+
+    .start-order-btn {
+        width: 100%;
+        max-width: none;
+        padding: 16px 18px;
+        gap: 12px;
+    }
+    .start-order-btn__text { min-width: 0; text-align: left; }
+
+    .order-type-grid {
+        width: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px;
+    }
+    .order-type-card { padding: 22px 12px; }
+
+    .menu-panel { padding: 16px 14px !important; }
+    .menu-panel__title { font-size: 22px; }
+
+    .menu-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+        margin-right: 0 !important;
+    }
+    .menu-card {
+        aspect-ratio: auto !important;
+        min-height: 0 !important;
+        border-radius: 20px;
+    }
+    .menu-card__image-wrap {
+        flex: none;
+        height: 112px;
+        padding: 10px 10px 4px;
+    }
+    .menu-card__info { padding: 4px 10px 12px; }
+    .menu-card__name { font-size: 13px; }
+    .menu-card__price { font-size: 12.5px; }
+
+    /* Cart / checkout panel flows under the menu at full width. */
+    .order-panel {
+        width: calc(100% - 24px) !important;
+        max-width: 620px;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        margin: 8px auto 24px !important;
+        border-radius: 28px !important;
+        padding: 16px 14px 18px !important;
+    }
+    .order-items-section {
+        flex: 0 0 auto !important;
+        min-height: 120px !important;
+        max-height: none !important;
+    }
+    .order-items-list {
+        min-height: 0 !important;
+        max-height: 300px !important;
+        overflow-y: auto;
+    }
+    .order-empty { min-height: 90px; padding: 12px 0; }
+    .payment-methods { grid-template-columns: 1fr 1fr !important; }
+    .payment-btn,
+    .payment-method-btn,
+    .place-order-btn { min-height: 46px; }
+
+    /* 16px fields stop iOS Safari zooming the page on focus. */
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+    select,
+    textarea { font-size: 16px !important; }
+
+    /* ── 4. ORDERS & SERVED ─────────────────────────────────── */
+    .orders-page,
+    .served-page { padding: 14px 12px 32px !important; }
+
+    .orders-title,
+    .served-title { font-size: 22px; }
+
+    .orders-controls,
+    .served-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    /* The desktop `flex: 1 1 260px` is a *width* in a row, but becomes a
+       260px *height* once the controls stack into a column. Reset it. */
+    .orders-search-wrapper,
+    .served-search-wrapper {
+        flex: 0 0 auto !important;
+        width: 100%;
+        max-width: none;
+    }
+    .orders-search,
+    .served-search { width: 100%; }
+
+    .orders-filters,
+    .served-filters { width: 100%; flex-wrap: wrap; gap: 8px; }
+    .orders-filters .filter,
+    .served-filters .served-filter { flex: 1 1 auto; text-align: center; }
+    .served-day-dropdown { width: 100%; }
+    .served-day-dropdown__btn { width: 100%; justify-content: space-between; }
+    .served-day-dropdown__menu { max-width: calc(100vw - 24px); }
+
+    .orders-grid,
+    .served-grid { grid-template-columns: minmax(0, 1fr) !important; }
+
+    .orders-grid.list-view .order-card {
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        grid-template-areas:
+            "top top"
+            "items items"
+            "summary action" !important;
+    }
+    .orders-grid.list-view .order-card > * { min-width: 0; }
+
+    .orders-view-toggle { align-self: flex-start; }
+    .orders-pagination,
+    .pagination { flex-wrap: wrap; justify-content: center; gap: 6px; }
+
+    /* Edit-order modal fits the visible screen, scrolls inside. */
+    .modal-overlay { padding: 10px; }
+    .edit-panel-modal {
+        max-width: 100%;
+        max-height: calc(100vh - 20px);
+        max-height: calc(100dvh - 20px);
+        border-radius: 24px;
+        padding: 16px;
+    }
+    .epm-picker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    /* ── 5. STATISTICS ──────────────────────────────────────── */
+    .stats-wrapper { display: block !important; }
+
+    /* Sidebar: stacked above the content (the section view has no
+       other way to switch month/section). Hidden until opened. */
+    .stats-sidebar {
+        display: none !important;
+        width: 100% !important;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .stats-sidebar--open {
+        display: flex !important;
+        max-height: 55vh;
+        max-height: 55dvh;
+        overflow-y: auto !important;
+    }
+
+    .stats-main { padding: 14px 12px 32px !important; gap: 14px; }
+
+    .dash-header { flex-wrap: wrap; gap: 8px 10px; }
+    .dash-title { font-size: 22px; flex: 1 1 auto; }
+    .dash-actions { width: 100%; margin-left: 0; flex-wrap: wrap; }
+    .dash-action-btn { flex: 1 1 auto; justify-content: center; }
+
+    .dash-row { grid-template-columns: minmax(0, 1fr) !important; }
+    .dash-box--trend { grid-column: auto; }
+    .dash-box__header { flex-wrap: wrap; }
+
+    .breadcrumb { flex-wrap: wrap; row-gap: 4px; }
+    .section-view__top { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .section-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .orders-list-wrap { padding: 12px; }
+    .orders-list__header { flex-wrap: wrap; gap: 8px; }
+    .orders-list__actions { flex-wrap: wrap; }
+
+    /* Wide tables scroll sideways inside their own box, not the page. */
+    .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+    }
+    .orders-table { min-width: 520px; }
+    .sales-archive-table { min-width: 760px; }
+    .orders-table th,
+    .orders-table td { padding: 8px 10px; white-space: nowrap; }
+
+    .rank-img-wrap { width: 64px; height: 48px; }
+    .rank-row { gap: 10px; }
+    .rank-info { min-width: 0; }
+
+    .finance-grid { grid-template-columns: minmax(0, 1fr) !important; }
+    .finance-entry-form { grid-template-columns: minmax(0, 1fr) !important; }
+    .sales-split { grid-template-columns: 1fr 1fr; }
+
+    .sales-detail-modal { padding: 10px; }
+    .sales-detail-modal__dialog { max-height: calc(100dvh - 20px); }
+    .sales-detail-modal__body { padding: 16px; }
+    .sales-detail-grid { grid-template-columns: minmax(0, 1fr); }
+
+    .order-modal,
+    .live-modal,
+    .excel-modal {
+        width: 100% !important;
+        max-width: calc(100vw - 20px) !important;
+        max-height: calc(100vh - 20px);
+        max-height: calc(100dvh - 20px);
+        overflow-y: auto;
+    }
+    .live-modal { overflow: hidden; }
+    .order-modal,
+    .excel-modal { padding: 20px 16px; border-radius: 22px; }
+    .live-modal-overlay,
+    .excel-modal-overlay { padding: 10px; }
+    .excel-option-grid { grid-template-columns: minmax(0, 1fr); }
+
+    /* ── 6. PROFILE ─────────────────────────────────────────── */
+    .profile-page { padding: 14px 12px 36px; }
+    .profile-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .profile-card { padding: 16px; }
+    .profile-card__header { flex-wrap: wrap; gap: 8px; }
+    .profile-fields,
+    .profile-fields--3col { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .profile-form-actions,
+    .profile-form-actions--right { flex-direction: column-reverse; align-items: stretch; }
+    .profile-form-actions .profile-btn-secondary,
+    .profile-form-actions .profile-btn-primary { width: 100%; }
+    .danger-row { flex-direction: column; align-items: stretch; }
+    .profile-breadcrumb { flex-wrap: wrap; }
+
+    /* ── 7. SETTINGS ────────────────────────────────────────── */
+    .settings-page { padding: 14px 12px 60px !important; }
+    .settings-heading { flex-direction: column !important; align-items: stretch !important; }
+    .hours-card { min-width: 0 !important; max-width: none !important; width: 100%; }
+    .settings-tabs { max-width: 100% !important; overflow-x: auto !important; }
+    .settings-tab { white-space: nowrap; }
+    .receipt-settings-layout { grid-template-columns: minmax(0, 1fr) !important; }
+    .field-grid { grid-template-columns: minmax(0, 1fr) !important; }
+    .form-actions { flex-wrap: wrap; }
+
+    .modal-backdrop,
+    .confirm-backdrop { padding: 10px !important; }
+    .menu-modal,
+    .confirm-dialog {
+        width: 100% !important;
+        max-width: calc(100vw - 20px) !important;
+        max-height: calc(100dvh - 20px) !important;
+        overflow-y: auto;
+    }
+    .confirm-actions { flex-direction: column-reverse; }
+    .confirm-actions button { width: 100%; }
+
+    /* ── 8. AUTH & ADMIN FORM PAGES (login, forgot, reset,
+          create branch, create cashier) ──────────────────── */
+    body > .login-card,
+    body > .card { margin: 0 auto; }
+    .login-card,
+    .card {
+        max-width: 100% !important;
+        padding: 28px 20px !important;
+        border-radius: 28px !important;
+    }
+    .login-logo,
+    .card__logo,
+    .logo { max-width: 140px; }
+}
+
+/* Login page has no body padding of its own — give the card gutters. */
+@media (max-width: 760px) {
+    body:has(> .login-card) { padding: 16px; }
+}
+
+/* ── Very small phones (≤ 380px) ────────────────────────────── */
+@media (max-width: 380px) {
+    .navbar { padding: 8px 10px !important; }
+    .navbar__logo-img { height: 32px !important; }
+    .navbar__date { display: none; }
+    .nav-link { font-size: 12px !important; padding: 0 4px !important; }
+
+    .order-type-grid { grid-template-columns: minmax(0, 1fr) !important; }
+    .menu-card__image-wrap { height: 96px; }
+    .menu-card__name { font-size: 12px; }
+    .payment-methods { grid-template-columns: minmax(0, 1fr) !important; }
+    .section-stats { grid-template-columns: minmax(0, 1fr); }
+    .edit-panel-modal { padding: 14px; }
+}

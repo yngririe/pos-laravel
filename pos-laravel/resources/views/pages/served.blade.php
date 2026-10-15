@@ -1,20 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="<?= $dark_mode ? 'dark' : 'light' ?>">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Served — Twist &amp; Roll</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/served/served.css">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/served/served.css?v=20261015-searchfix1">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1C3924">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
-    <script src="{{ asset('assets/js/csrf.js') }}"></script>
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-xpad1') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
 </head>
 <body>
 <header class="navbar">
@@ -51,6 +52,10 @@
                     Profile
                 </a>
                 <?php if ($role === 'admin'): ?>
+                                <a href="{{ route('settings') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.1 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2V9.6h.4A1.7 1.7 0 0 0 4.1 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.5 4.1a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 9.9 2H14v.4a1.7 1.7 0 0 0 1.1 1.7 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.5 8.5a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.4V14h-.4a1.7 1.7 0 0 0-1.8 1z"/></svg>
+                    Settings
+                </a>
                 <a href="{{ route('cashiers.create') }}" class="dropdown-item">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="9" cy="7" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
@@ -78,9 +83,9 @@
             <input type="text" id="servedSearch" class="served-search" placeholder="Search orders">
         </div>
         <div class="served-filters">
-            <button class="served-filter active" data-filter="all"      data-group="type">All</button>
-            <button class="served-filter"        data-filter="dine-in"  data-group="type">Dine in</button>
-            <button class="served-filter"        data-filter="take-out" data-group="type">Take out</button>
+            <button class="served-filter active" data-filter="all"   data-group="payment">All</button>
+            <button class="served-filter"        data-filter="cash"  data-group="payment">Cash</button>
+            <button class="served-filter"        data-filter="gcash" data-group="payment">GCash</button>
             <?php if (!empty($unique_biz_dates)): ?>
             <span class="served-filter-divider">·</span>
             <div class="served-day-dropdown" id="served-day-dropdown">
@@ -117,15 +122,15 @@
             $ordered    = date('M d, g:i A', strtotime($o['created_at']));
             $served     = !empty($o['served_at']) ? date('M d, g:i A', strtotime($o['served_at'])) : '—';
             $type       = $o['order_type'];
-            $typeLabel  = $type==='dine-in' ? 'Dine in' : 'Take out';
+            $typeLabel = ['dine-in'=>'Dine in','take-out'=>'Take out','delivery'=>'Delivery','pick-up'=>'Pick up'][$type] ?? ucfirst($type);
             $badgeClass = $type==='dine-in' ? 'dine' : 'takeout';
             $bizDate    = $o['biz_date'] ?? '';
         ?>
-        <div class="served-card" data-type="<?= htmlspecialchars($type) ?>" data-biz-date="<?= htmlspecialchars($bizDate) ?>">
+        <div class="served-card" data-type="<?= htmlspecialchars($type) ?>" data-payment="<?= htmlspecialchars(strtolower($o['payment_method'])) ?>" data-biz-date="<?= htmlspecialchars($bizDate) ?>">
             <div class="served-card__top">
                 <span class="served-status">✓ Served</span>
                 <span class="served-type-badge <?= $badgeClass ?>"><?= $typeLabel ?></span>
-                <?php if ($o['beeper_number']): ?><span class="served-beeper">#<?= $o['beeper_number'] ?></span><?php endif; ?>
+                <?php if ($o['beeper_number']): ?><span class="served-beeper">#<?= $o['beeper_number'] ?></span><?php elseif ($type === 'delivery' && !empty($o['customer_name'])): ?><span class="served-beeper"><?= htmlspecialchars($o['customer_name']) ?></span><?php endif; ?>
             </div>
             <div class="served-card__items">
                 <?php for ($i=0;$i<count($names);$i++): if(!$names[$i]) continue; ?>
@@ -153,7 +158,11 @@
     </div>
     <div class="pagination" id="pagination"></div>
 </div>
-<script src="<?= $base_url ?>modules/served/served.js"></script>
-<script src="/assets/js/pwa_register.js"></script>
+<script src="<?= $base_url ?>modules/served/served.js?v=20261015-xpad1"></script>
+<script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
+<?php if ($role === 'cashier'): ?>
+<script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>
+<script src="{{ asset('assets/js/order-notifications.js?v=20261015-bell1') }}"></script>
+<?php endif; ?>
 </body>
 </html>
