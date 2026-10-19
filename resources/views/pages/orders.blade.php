@@ -26,13 +26,19 @@
 
 <header class="navbar">
     <div class="navbar__logo-wrap">
-    <a href="{{ route('home') }}" style="display:flex;align-items:center;">
+    <a href="{{ route('pos.home') }}"
+    target="_self"
+    class="navbar__logo-link">
         <img src="<?= $base_url ?>assets/images/logo.png" class="navbar__logo-img" alt="Twist & Roll">
     </a>
     <span class="branch-badge"><?= htmlspecialchars($branch_name) ?></span>
 </div>
     <nav class="navbar__nav">
-        <a href="{{ route('home') }}"       class="nav-link <?= $current_page==='home'       ?'nav-link--active':'' ?>">Home</a>
+        <a href="{{ route('pos.home') }}"
+        target="_self"
+        class="nav-link <?= $current_page==='home' ? 'nav-link--active' : '' ?>">
+            Home
+        </a>
         <a href="{{ route('orders') }}"     class="nav-link <?= $current_page==='orders'     ?'nav-link--active':'' ?>">Orders</a>
         <a href="{{ route('served') }}"     class="nav-link <?= $current_page==='served'     ?'nav-link--active':'' ?>">Served</a>
         <?php if ($role === 'admin'): ?>
@@ -269,6 +275,10 @@
             <div class="payment-summary__row">
                 <span>Subtotal</span>
                 <span class="subtotal-value-normal" id="epm-subtotal-val">Php 0</span>
+            </div>
+            <div class="payment-summary__row" id="epm-delivery-fee-row" style="display:none;">
+                <span>Delivery Fee</span>
+                <span class="subtotal-value-normal" id="epm-delivery-fee-val">Php 30</span>
             </div>
             <div class="payment-summary__divider"></div>
             <div class="payment-summary__total">

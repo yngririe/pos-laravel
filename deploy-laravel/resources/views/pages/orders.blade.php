@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders — Twist &amp; Roll</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/orders/orders.css?v=20261015-searchfix1">
+    <script>
+        const MENU_ITEMS   = <?= json_encode(array_values($menu_items)) ?>;
+        const DISCOUNT_MAP = <?= json_encode($discount_map) ?>;
+        const BASE_URL     = '<?= $base_url ?>';
+    </script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1C3924">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="/assets/images/icon-192.png">
+    <script src="{{ asset('assets/js/csrf.js?v=20261015-xpad1') }}"></script>
+    <link rel="stylesheet" href="{{ asset('assets/mobile.css?v=20261015-mobile2') }}">
+</head>
+<body>
+
+<header class="navbar">
+    <div class="navbar__logo-wrap">
+    <a href="{{ route('pos.home') }}"
+    target="_self"
+    class="navbar__logo-link">
+        <img src="<?= $base_url ?>assets/images/logo.png" class="navbar__logo-img" alt="Twist & Roll">
+    </a>
+    <span class="branch-badge"><?= htmlspecialchars($branch_name) ?></span>
+</div>
+    <nav class="navbar__nav">
+        <a href="{{ route('pos.home') }}"
+        target="_self"
+        class="nav-link <?= $current_page==='home' ? 'nav-link--active' : '' ?>">
+            Home
+        </a>
+        <a href="{{ route('orders') }}"     class="nav-link <?= $current_page==='orders'     ?'nav-link--active':'' ?>">Orders</a>
+        <a href="{{ route('served') }}"     class="nav-link <?= $current_page==='served'     ?'nav-link--active':'' ?>">Served</a>
+        <?php if ($role === 'admin'): ?>
+        <a href="{{ route('statistics') }}" class="nav-link <?= $current_page==='statistics' ?'nav-link--active':'' ?>">Statistics</a>
+        <?php endif; ?>
+    </nav>
+    <div class="navbar__right">
+        <div class="navbar__datetime">
+            <div id="current-day"  class="navbar__day"></div>
+            <div id="current-date" class="navbar__date"></div>
+        </div>
+        <!-- Branch name badge -->
+        <div class="profile-menu">
+            <button id="profile-btn" class="profile-btn">
+                <?php if (!empty($nav_user['avatar'])): ?>
+                    <img src="<?= htmlspecialchars($nav_user['avatar']) ?>" class="profile-icon" alt="Profile" style="object-fit:cover;border-radius:50%;">
+                <?php else: ?>
+                    <img src="<?= $base_url ?>assets/images/profile.png" class="profile-icon" alt="Profile">
+                <?php endif; ?>
+            </button>
+            <div class="profile-dropdown" id="profile-dropdown">
+                <a href="{{ route('profile') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
+                    </svg>
+                    Profile
+                </a>
+                <?php if ($role === 'admin'): ?>
+                                <a href="{{ route('settings') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.1 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2V9.6h.4A1.7 1.7 0 0 0 4.1 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.5 4.1a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 9.9 2H14v.4a1.7 1.7 0 0 0 1.1 1.7 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.5 8.5a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.4V14h-.4a1.7 1.7 0 0 0-1.8 1z"/></svg>
+                    Settings
+                </a>
+                <a href="{{ route('cashiers.create') }}" class="dropdown-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="7" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>
+                    </svg>
+                    Create Cashier
+                </a>
+                <?php endif; ?>
+                <button class="logout-btn" id="logout-btn" data-logout-url="{{ route('logout') }}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="orders-page">
+    <div class="orders-title">Orders</div>
+    <div class="orders-controls">
+        <div class="orders-search-wrapper">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="8" cy="8" r="7"/><line x1="13" y1="13" x2="17" y2="17"/>
+            </svg>
+            <input type="text" id="orderSearch" class="orders-search" placeholder="Search by order #, beeper, customer or item">
+        </div>
+        <div class="orders-filters">
+            <button class="filter active" onclick="filterOrders('all', this)">All</button>
+            <button class="filter" onclick="filterOrders('dine-in', this)">Dine in</button>
+            <button class="filter" onclick="filterOrders('take-out', this)">Take out</button>
+            <button class="filter" onclick="filterOrders('delivery', this)">Delivery</button>
+            <button class="filter" onclick="filterOrders('pick-up', this)">Pick up</button>
+        </div>
+        <div class="orders-view-toggle" role="group" aria-label="Order view">
+            <button type="button" class="view-toggle-btn active" data-view="grid" aria-pressed="true" title="Box view">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Box</span>
+            </button>
+            <button type="button" class="view-toggle-btn" data-view="list" aria-pressed="false" title="List view">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+                <span>List</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="orders-grid" id="orders-grid">
+        <?php if (empty($orders)): ?>
+            <div class="orders-empty" id="empty">No pending orders yet.</div>
+        <?php else: ?>
+        <?php foreach ($orders as $o):
+            $names  = explode('||', $o['item_names']  ?? '');
+            $prices = explode('||', $o['item_prices'] ?? '');
+            $qtys   = explode('||', $o['item_qtys']   ?? '');
+            $ids    = explode('||', $o['item_ids']    ?? '');
+            $time   = date('M d, g:i A', strtotime($o['created_at']));
+            $type       = $o['order_type'];
+            $typeLabel = ['dine-in'=>'Dine in','take-out'=>'Take out','delivery'=>'Delivery','pick-up'=>'Pick up'][$type] ?? ucfirst($type);
+            $badgeClass = $type === 'dine-in' ? 'dine' : 'takeout';
+            $orderLabel = $o['beeper_number'] ? '#'.$o['beeper_number'] : (($type === 'delivery' && !empty($o['customer_name'])) ? $o['customer_name'] : 'Order #'.str_pad($o['id'],4,'0',STR_PAD_LEFT));
+
+            $itemsJson = [];
+            for ($i = 0; $i < count($names); $i++) {
+                if (!$names[$i]) continue;
+                $itemsJson[] = [
+                    'id'    => (int)($ids[$i] ?? 0),
+                    'name'  => $names[$i],
+                    'price' => (int)$prices[$i],
+                    'qty'   => (int)$qtys[$i],
+                ];
+            }
+        ?>
+        <div class="order-card" data-id="<?= $o['id'] ?>" data-type="<?= htmlspecialchars($type) ?>">
+            <div class="order-top">
+                <div class="order-top-left">
+                    <span class="order-id" data-beeper="<?= $o['beeper_number'] ?>" data-customer="<?= htmlspecialchars($o['customer_name'] ?? '') ?>"><?= $o['beeper_number'] ? 'Beeper #'.$o['beeper_number'] : (($type === 'delivery' && !empty($o['customer_name'])) ? htmlspecialchars($o['customer_name']) : 'Order #'.str_pad($o['id'],4,'0',STR_PAD_LEFT)) ?></span>
+                </div>
+                <div class="order-top-right">
+                    <span class="badge <?= $badgeClass ?>"><?= $typeLabel ?></span>
+                    <div class="order-menu-wrapper">
+                        <button class="order-menu-btn">⋮</button>
+                        <div class="order-menu">
+                            <button class="edit-order-btn"
+                                data-id="<?= $o['id'] ?>"
+                                data-beeper="<?= $o['beeper_number'] ?>"
+                                data-customer="<?= htmlspecialchars($o['customer_name'] ?? '') ?>"
+                                data-payment="<?= $o['payment_method'] ?>"
+                                data-type="<?= $o['order_type'] ?>"
+                                data-total="<?= $o['total'] ?>"
+                                data-subtotal="<?= $o['subtotal'] ?>"
+                                data-discount="<?= $o['discount'] ?>"
+                                data-items="<?= htmlspecialchars(json_encode($itemsJson), ENT_QUOTES) ?>"
+                            >Edit</button>
+                            <button class="void-order-btn"
+                                data-id="<?= $o['id'] ?>"
+                                data-label="<?= htmlspecialchars($orderLabel) ?>"
+                                data-total="<?= $o['total'] ?>">Void</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="order-list-meta" aria-hidden="true">
+                <span><?= array_sum(array_map('intval', $qtys)) ?> item<?= array_sum(array_map('intval', $qtys)) === 1 ? '' : 's' ?></span>
+                <span class="order-list-payment"><?= ucfirst($o['payment_method']) ?></span>
+                <span class="order-list-time"><?= $time ?></span>
+            </div>
+
+            <div class="order-items">
+                <?php for ($i = 0; $i < count($names); $i++): if (!$names[$i]) continue; ?>
+                <div class="order-row">
+                    <span><?= $qtys[$i] ?>x <?= htmlspecialchars($names[$i]) ?></span>
+                    <span>₱<?= number_format($prices[$i] * $qtys[$i], 0) ?></span>
+                </div>
+                <?php endfor; ?>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="order-extra">
+                <div class="extra-row">
+                    <span>Payment</span>
+                    <span><?= ucfirst($o['payment_method']) ?></span>
+                </div>
+                <div class="extra-row">
+                    <span>Subtotal</span>
+                    <span>Php <?= number_format($o['subtotal'], 0) ?></span>
+                </div>
+                <div class="extra-row">
+                    <span>Discount</span>
+                    <span><?= $o['discount'] > 0 ? '−Php '.number_format($o['discount'],0) : 'Php 0' ?></span>
+                </div>
+            </div>
+
+            <div class="order-bottom">
+                <div>
+                    <strong>Total</strong>
+                    <div class="time"><?= $time ?></div>
+                </div>
+                <div class="price">₱<?= number_format($o['total'], 0) ?></div>
+            </div>
+
+            <button class="serve-btn" data-id="<?= $o['id'] ?>" onclick="markServed(this)">
+                Mark as served
+            </button>
+        </div>
+        <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
+    <div class="orders-pagination" id="orders-pagination"></div>
+</div>
+
+<!-- EDIT MODAL — unchanged from original -->
+<div class="modal-overlay" id="editModal">
+    <div class="edit-panel-modal">
+        <div class="epm-header">
+            <div>
+                <h2>Edit Order</h2>
+                <p>Modify customer order</p>
+            </div>
+            <button class="epm-close" id="editModalClose">×</button>
+        </div>
+        <div class="order-panel__type" id="epm-type-wrap">
+            <button type="button" class="type-btn type-btn--active" data-type="dine-in">Dine in</button>
+            <button type="button" class="type-btn" data-type="take-out">Take out</button>
+            <button type="button" class="type-btn" data-type="delivery">Delivery</button>
+            <button type="button" class="type-btn" data-type="pick-up">Pick up</button>
+        </div>
+        <input type="hidden" id="epm-type">
+        <div class="order-panel__beeper" id="epm-beeper-wrap">
+            <span class="beeper-label">Beeper #</span>
+            <input type="number" id="epm-beeper" class="beeper-input" placeholder="Enter beeper number" min="1">
+        </div>
+        <div class="order-panel__beeper" id="epm-customer-wrap" style="display:none;">
+            <span class="beeper-label">Customer name</span>
+            <input type="text" id="epm-customer-name" class="beeper-input" placeholder="Enter customer name" maxlength="100" autocomplete="off">
+        </div>
+        <p class="epm-items-label">ORDER ITEMS</p>
+        <div class="epm-items-list" id="epm-items-list"></div>
+        <button type="button" class="epm-add-btn" id="epm-add-btn">add order +</button>
+        <div class="epm-menu-picker" id="epm-menu-picker">
+            <div class="epm-picker-filters">
+                <button class="epm-pf active" data-cat="all">All</button>
+            </div>
+            <div class="epm-picker-grid" id="epm-picker-grid"></div>
+        </div>
+        <div class="payment-summary">
+            <p class="payment-summary__title">PAYMENT SUMMARY</p>
+            <div class="payment-summary__row">
+                <label class="discount-label" for="epm-discount-select">Discount</label>
+                <select class="discount-select" id="epm-discount-select">
+                    <option value="none">No discount</option>
+                    <option value="20">20%</option>
+                    <option value="10">10%</option>
+                    <option value="minus10">− Php 10</option>
+                </select>
+                <span class="discount-value" id="epm-discount-val">Php 0</span>
+            </div>
+            <div class="payment-summary__row">
+                <span>Subtotal</span>
+                <span class="subtotal-value-normal" id="epm-subtotal-val">Php 0</span>
+            </div>
+            <div class="payment-summary__row" id="epm-delivery-fee-row" style="display:none;">
+                <span>Delivery Fee</span>
+                <span class="subtotal-value-normal" id="epm-delivery-fee-val">Php 30</span>
+            </div>
+            <div class="payment-summary__divider"></div>
+            <div class="payment-summary__total">
+                <span>Total</span>
+                <span class="total-amount" id="epm-total-val">Php 0.00</span>
+            </div>
+        </div>
+        <div class="payment-methods" id="epm-payment-wrap">
+            <button type="button" class="payment-btn payment-btn--active" data-method="cash">Cash</button>
+            <button type="button" class="payment-btn" data-method="gcash">Gcash</button>
+        </div>
+        <input type="hidden" id="epm-payment">
+        <div class="amount-input-wrap" id="epm-amount-wrap">
+            <input type="number" class="amount-input" id="epm-amount-input" placeholder="Amount Paid">
+        </div>
+        <button type="button" class="place-order-btn" id="epm-total-btn" disabled>
+            Place order – Php 0.00
+        </button>
+        <button type="button" class="epm-save-btn" id="epm-save-btn">Save Changes</button>
+        <input type="hidden" id="epm-order-id">
+    </div>
+</div>
+
+<!-- VOID MODAL — unchanged from original -->
+<div class="modal-overlay" id="voidModal">
+    <div class="delete-box">
+        <div class="void-icon">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#D8C36F" stroke-width="2.2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+        </div>
+        <h3>Void Order?</h3>
+        <p id="voidModalMsg">This order will be marked as voided.</p>
+        <div class="delete-actions">
+            <button class="cancel-delete-btn" onclick="closeVoidModal()">Cancel</button>
+            <button class="confirm-void-btn" id="confirmVoidBtn">Yes, Void it</button>
+        </div>
+    </div>
+</div>
+
+<script src="<?= $base_url ?>modules/orders/orders.js?v=20261015-delivery-notify1"></script>
+ <script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
+<?php if ($role === 'cashier'): ?>
+<script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>
+<script src="{{ asset('assets/js/order-notifications.js?v=20261015-bell1') }}"></script>
+<?php endif; ?>
+</body>
+</html>

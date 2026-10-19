@@ -21,13 +21,13 @@
 
 <header class="navbar">
     <div class="navbar__logo-wrap">
-    <a href="{{ route('home') }}" style="display:flex;align-items:center;">
+    <a href="{{ route('pos.home') }}" target="_self" style="display:flex;align-items:center;">
         <img src="<?= $base_url ?>assets/images/logo.png" class="navbar__logo-img" alt="Twist & Roll">
     </a>
     <span class="branch-badge"><?= htmlspecialchars($branch_name) ?></span>
 </div>
     <nav class="navbar__nav">
-        <a href="{{ route('home') }}"       class="nav-link">Home</a>
+        <a href="{{ route('pos.home') }}" target="_self" class="nav-link">Home</a>
         <a href="{{ route('orders') }}"     class="nav-link">Orders</a>
         <a href="{{ route('served') }}"     class="nav-link">Served</a>
         <?php if ($role === 'admin'): ?>
@@ -435,7 +435,7 @@
             <div class="finance-overview__header">
                 <div>
                     <p class="overview-label">Today’s Business Day</p>
-                    <div class="finance-date"><?= date('F j, Y', strtotime($today)) ?> · 3:00 PM to next day 2:00 AM</div>
+                    <div class="finance-date"><?= date('F j, Y', strtotime($today)) ?> · 3:00 PM to next day 5:00 AM</div>
                 </div>
                 <?php if (!$business_open): ?><span class="finance-closed">Business Closed · New day starts at 3:00 PM</span><?php elseif (session('cash_record_saved')): ?><span class="finance-saved">Petty cash saved</span><?php elseif (session('expense_added')): ?><span class="finance-saved">Expense added</span><?php endif; ?>
             </div>
@@ -444,10 +444,37 @@
                     <form class="finance-entry-form" method="POST" action="{{ route('statistics.daily-cash') }}">
                         @csrf
                         <input type="hidden" name="business_date" value="<?= $today ?>">
-                        <label for="petty_cash">Petty Cash</label>
-                        <div class="money-input"><span>₱</span><input id="petty_cash" name="petty_cash" type="number" min="0" step="1" value="<?= (int)round($today_cash_record['petty_cash']??0) ?>" required <?= !$business_open ? 'disabled' : '' ?>></div>
-                        <span class="finance-help"><?= $business_open ? 'Starting money for this business day' : 'Closed — previous day is available in Sales Archive' ?></span>
-                        <button type="submit" class="finance-save-btn" <?= !$business_open ? 'disabled' : '' ?>>Save Petty Cash</button>
+                        <label for="petty_cash">Add Petty Cash</label>
+
+                        <div class="money-input">
+                            <span>₱</span>
+                            <input
+                                id="petty_cash"
+                                name="petty_cash"
+                                type="number"
+                                min="1"
+                                step="1"
+                                placeholder="0"
+                                required
+                                <?= !$business_open ? 'disabled' : '' ?>
+                            >
+                        </div>
+
+                        <span class="finance-help">
+                            <?php if ($business_open): ?>
+                                Current Petty Cash: ₱<?= number_format($today_cash_record['petty_cash'] ?? 0, 0) ?>
+                            <?php else: ?>
+                                Closed — previous day is available in Sales Archive
+                            <?php endif; ?>
+                        </span>
+
+                        <button
+                            type="submit"
+                            class="finance-save-btn"
+                            <?= !$business_open ? 'disabled' : '' ?>
+                        >
+                            Add Petty Cash
+                        </button>
                     </form>
 
                     <div class="expense-divider"></div>
@@ -458,14 +485,31 @@
                         <div class="money-input"><span>₱</span><input id="expense_amount" name="amount" type="number" min="1" step="1" placeholder="0" required <?= !$business_open ? 'disabled' : '' ?>></div>
                         <label for="expense_note">Note</label>
                         <input class="expense-note-input" id="expense_note" name="note" type="text" maxlength="255" placeholder="e.g. Ingredients, delivery fee, ice" required <?= !$business_open ? 'disabled' : '' ?>>
-                        <span class="finance-help">Add what the expense was for. You can add as many expenses as needed.</span>
                         <button type="submit" class="finance-save-btn" <?= !$business_open ? 'disabled' : '' ?>>Add Expense</button>
                     </form>
                     <div class="expense-total-row"><span>Today's Expenses</span><strong>₱<?= number_format($today_expense_total,0) ?></strong></div>
                     <?php if (!empty($today_expenses)): ?>
                         <div class="expense-list">
                             <?php foreach ($today_expenses as $expense): ?>
-                                <div class="expense-list__item"><span><?= e($expense['note'] ?? 'Expense') ?></span><b>₱<?= number_format($expense['amount'],0) ?></b></div>
+                                <div class="expense-list__item">
+                                    <span><?= e($expense['note'] ?? 'Expense') ?></span>
+
+                                    <div class="expense-list__actions">
+                                        <b>₱<?= number_format($expense['amount'], 0) ?></b>
+
+                                        <button
+                                            type="button"
+                                            class="expense-edit-btn"
+                                            onclick='openExpenseEditModal(
+                                                <?= (int) $expense["id"] ?>,
+                                                <?= json_encode((float) $expense["amount"]) ?>,
+                                                <?= json_encode($expense["note"] ?? "") ?>
+                                            )'
+                                        >
+                                            Edit
+                                        </button>
+                                    </div>
+                                </div>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
@@ -568,11 +612,11 @@
 </div>
 
 <script>
-    const DAILY_DATA   = <?= $daily_json ?>;
-    const WEEKLY_DATA  = <?= $weekly_json ?>;
-    const MONTHLY_DATA = <?= $monthly_json ?>;
-    const BAR_DATA     = <?= $bar_json ?>;
-    const SIDEBAR_OPEN   = <?= $sidebar_open?'true':'false' ?>;
+    const DAILY_DATA     = <?= $daily_json ?>;
+    const WEEKLY_DATA    = <?= $weekly_json ?>;
+    const MONTHLY_DATA   = <?= $monthly_json ?>;
+    const BAR_DATA       = <?= $bar_json ?>;
+    const SIDEBAR_OPEN   = <?= $sidebar_open ? 'true' : 'false' ?>;
     const SELECTED_YEAR  = <?= $selected_year ?>;
     const SELECTED_MONTH = <?= $selected_month ?>;
     const CHART_YEAR     = <?= $chart_year ?>;
@@ -582,13 +626,224 @@
 
     function reloadSalesPerDay() {
         const m = document.getElementById('spd-month')?.value || CHART_MONTH;
-        const y = document.getElementById('spd-year')?.value  || CHART_YEAR;
+        const y = document.getElementById('spd-year')?.value || CHART_YEAR;
         const url = new URL(window.location.href);
         url.searchParams.set('chart_month', m);
-        url.searchParams.set('chart_year',  y);
+        url.searchParams.set('chart_year', y);
         window.location.href = url.toString();
     }
 </script>
+
+<style>
+    .expense-edit-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .expense-edit-modal.is-open {
+        display: flex;
+    }
+
+    .expense-edit-modal__backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+    }
+
+    .expense-edit-modal__panel {
+        position: relative;
+        z-index: 1;
+        width: min(460px, 100%);
+        background: #fffdf3;
+        border-radius: 18px;
+        padding: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+    }
+
+    .expense-edit-modal__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .expense-edit-modal__header h3 {
+        margin: 0 0 4px;
+        font-size: 22px;
+        color: #173d25;
+    }
+
+    .expense-edit-modal__header p {
+        margin: 0;
+        font-size: 13px;
+        color: #777;
+    }
+
+    .expense-edit-modal__close {
+        border: 0;
+        background: transparent;
+        font-size: 28px;
+        line-height: 1;
+        cursor: pointer;
+        color: #555;
+    }
+
+    .expense-edit-modal form > label {
+        display: block;
+        margin: 16px 0 7px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #173d25;
+    }
+
+    .expense-edit-modal .money-input {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 0 14px;
+        background: #fff;
+        border: 1px solid #ded7b8;
+        border-radius: 10px;
+        box-sizing: border-box;
+    }
+
+    .expense-edit-modal .money-input input {
+        flex: 1;
+        min-width: 0;
+        height: 44px;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        font: inherit;
+    }
+
+    .expense-edit-modal .expense-note-input {
+        width: 100%;
+        height: 44px;
+        padding: 0 14px;
+        border: 1px solid #ded7b8;
+        border-radius: 10px;
+        background: #fff;
+        outline: none;
+        box-sizing: border-box;
+        font: inherit;
+    }
+
+    .expense-edit-modal__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 24px;
+    }
+
+    .expense-modal-cancel,
+    .expense-edit-modal .finance-save-btn {
+        min-height: 42px;
+        padding: 0 18px;
+        border-radius: 10px;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+    }
+
+    .expense-modal-cancel {
+        border: 1px solid #d8d2b6;
+        background: #fff;
+        color: #173d25;
+    }
+
+    .expense-edit-modal .finance-save-btn {
+        border: 0;
+        background: #173d25;
+        color: #fff;
+    }
+
+    body.modal-open {
+        overflow: hidden;
+    }
+</style>
+
+<div class="expense-edit-modal" id="expenseEditModal" aria-hidden="true">
+    <div class="expense-edit-modal__backdrop" onclick="closeExpenseEditModal()"></div>
+    <div class="expense-edit-modal__panel" role="dialog" aria-modal="true" aria-labelledby="expenseEditTitle">
+        <div class="expense-edit-modal__header">
+            <div>
+                <h3 id="expenseEditTitle">Edit Expense</h3>
+                <p>Update the amount or note of this expense.</p>
+            </div>
+            <button type="button" class="expense-edit-modal__close" onclick="closeExpenseEditModal()" aria-label="Close">&times;</button>
+        </div>
+
+        <form id="expenseEditForm" method="POST">
+            @csrf
+            @method('PUT')
+
+            <label for="editExpenseAmount">Amount</label>
+            <div class="money-input">
+                <span>₱</span>
+                <input id="editExpenseAmount" name="amount" type="number" min="0.01" step="0.01" required>
+            </div>
+
+            <label for="editExpenseNote">Note</label>
+            <input class="expense-note-input" id="editExpenseNote" name="note" type="text" maxlength="255" required>
+
+            <div class="expense-edit-modal__actions">
+                <button type="button" class="expense-modal-cancel" onclick="closeExpenseEditModal()">Cancel</button>
+                <button type="submit" class="finance-save-btn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openExpenseEditModal(id, amount, note) {
+        const modal = document.getElementById('expenseEditModal');
+        const form = document.getElementById('expenseEditForm');
+        const amountInput = document.getElementById('editExpenseAmount');
+        const noteInput = document.getElementById('editExpenseNote');
+
+        if (!modal || !form || !amountInput || !noteInput) {
+            console.error('[Expense Edit] Modal elements not found.');
+            return;
+        }
+
+        form.action = @json(url('/statistics/expenses')) + '/' + id;
+        amountInput.value = amount;
+        noteInput.value = note ?? '';
+
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+
+        setTimeout(() => {
+            amountInput.focus();
+            amountInput.select();
+        }, 50);
+    }
+
+    function closeExpenseEditModal() {
+        const modal = document.getElementById('expenseEditModal');
+        if (!modal) return;
+
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && document.getElementById('expenseEditModal')?.classList.contains('is-open')) {
+            closeExpenseEditModal();
+        }
+    });
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=20261015-xpad1"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js?v=20261015-xpad1"></script>
 <script src="<?= $base_url ?>modules/statistics/statistics.js?v=20261015-xpad1"></script>
