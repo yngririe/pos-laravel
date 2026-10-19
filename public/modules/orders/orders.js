@@ -268,6 +268,8 @@
     const epmDiscSelect   = document.getElementById('epm-discount-select');
     const epmDiscVal      = document.getElementById('epm-discount-val');
     const epmSubtotalVal  = document.getElementById('epm-subtotal-val');
+    const epmDeliveryFeeRow = document.getElementById('epm-delivery-fee-row');
+    const epmDeliveryFeeVal = document.getElementById('epm-delivery-fee-val');
     const epmTotalVal     = document.getElementById('epm-total-val');
     const epmPaymentWrap  = document.getElementById('epm-payment-wrap');
     const epmPaymentInput = document.getElementById('epm-payment');
@@ -293,7 +295,14 @@
             const cheapest = epm.items.reduce((m, o) => o.price < m.price ? o : m, epm.items[0]);
             disc = getItemDiscount(cheapest.price);
         }
-        return { subtotal: Math.round(subtotal), disc, total: Math.round(subtotal - disc) };
+        const deliveryFee = epm.orderType === 'delivery' ? 30 : 0;
+
+        return {
+            subtotal: Math.round(subtotal),
+            disc,
+            deliveryFee,
+            total: Math.round(subtotal - disc + deliveryFee)
+        };
     }
 
     function escHtml(str) {
@@ -356,11 +365,24 @@
 
     // ── TOTALS ─────────────────────────────────────────────
     function updateEpmTotals() {
-        const { subtotal, disc, total } = calcEpmTotals();
+        const { subtotal, disc, deliveryFee, total } = calcEpmTotals();
+
         epmSubtotalVal.textContent = `Php ${subtotal.toLocaleString()}`;
-        epmDiscVal.textContent     = disc > 0 ? `−Php ${disc.toLocaleString()}` : 'Php 0';
-        epmTotalVal.textContent    = `Php ${total.toLocaleString()}`;
-        epmTotalBtn.textContent    = `Place order – Php ${total.toLocaleString()}`;
+        epmDiscVal.textContent = disc > 0
+            ? `−Php ${disc.toLocaleString()}`
+            : 'Php 0';
+
+        if (epmDeliveryFeeRow) {
+            epmDeliveryFeeRow.style.display = deliveryFee > 0 ? 'flex' : 'none';
+        }
+
+        if (epmDeliveryFeeVal) {
+            epmDeliveryFeeVal.textContent = `Php ${deliveryFee.toLocaleString()}`;
+        }
+
+        epmTotalVal.textContent = `Php ${total.toLocaleString()}`;
+        epmTotalBtn.textContent = `Place order – Php ${total.toLocaleString()}`;
+
         syncEpmPaymentUI();
     }
 
@@ -400,9 +422,14 @@
     epmTypeWrap.querySelectorAll('.type-btn').forEach(btn => {
         btn.addEventListener('click', function () {
             epmTypeWrap.querySelectorAll('.type-btn').forEach(b => b.classList.remove('type-btn--active'));
+
             this.classList.add('type-btn--active');
-            epm.orderType = this.dataset.type; epmTypeInput.value = this.dataset.type;
+
+            epm.orderType = this.dataset.type;
+            epmTypeInput.value = this.dataset.type;
+
             syncEditBeeperUI();
+            updateEpmTotals();
         });
     });
 

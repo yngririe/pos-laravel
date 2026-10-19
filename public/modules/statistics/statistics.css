@@ -286,6 +286,105 @@
   font-family: 'Poppins', sans-serif;
 }
 
+/* Edit Expense */
+.expense-list__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.expense-edit-btn {
+    border: 1px solid #d7ddd9;
+    background: #fff;
+    border-radius: 7px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.expense-edit-btn:hover {
+    background: #f4f6f4;
+}
+
+.expense-edit-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.expense-edit-modal.is-open {
+    display: flex;
+}
+
+.expense-edit-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.expense-edit-modal__panel {
+    position: relative;
+    z-index: 1;
+    width: min(430px, 100%);
+    background: #fff;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+.expense-edit-modal__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.expense-edit-modal__header h3 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.expense-edit-modal__header p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.expense-edit-modal__close {
+    border: 0;
+    background: transparent;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.expense-edit-modal__panel form {
+    display: grid;
+    gap: 10px;
+}
+
+.expense-edit-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.expense-modal-cancel {
+    border: 1px solid #d7ddd9;
+    background: #fff;
+    border-radius: 9px;
+    padding: 10px 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 /* ── DASH ROW ─────────────────────────────── */
 .dash-row {
   display: grid;

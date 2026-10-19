@@ -44,9 +44,10 @@ class StatisticsController extends Controller
 
         // Live shift: 3:00 PM through 1:59:59 AM. From 2:00 AM until 2:59:59 PM
         // the live finance panel is closed/reset; the completed shift remains in Sales Archive.
-        $business_open = $nowPht->hour >= 15 || $nowPht->hour < 2;
+        $business_open = $nowPht->hour >= 15 || $nowPht->hour < 5;
         $bizNow = $nowPht->copy();
-        if ($nowPht->hour < 2) {
+
+        if ($nowPht->hour < 5) {
             $bizNow->subDay();
         }
         $today = $bizNow->format('Y-m-d');
@@ -98,11 +99,27 @@ class StatisticsController extends Controller
         ", [$selected_year, $selected_month]);
 
         $least_items = Pos::all("
-            SELECT oi.name, oi.menu_item_id, SUM(oi.quantity) as total_qty
-            FROM order_items oi JOIN orders o ON o.id=oi.order_id
-            WHERE $BIZ_YEAR=? AND $BIZ_MONTH=? AND o.status IN ('pending','served') $BRANCH
-            GROUP BY oi.name,oi.menu_item_id ORDER BY total_qty ASC LIMIT 3
-        ", [$selected_year, $selected_month]);
+            SELECT
+                m.id AS menu_item_id,
+                m.name,
+                COALESCE(SUM(
+                    CASE
+                        WHEN $BIZ_YEAR = ?
+                        AND $BIZ_MONTH = ?
+                        AND o.status IN ('pending','served')
+                        AND o.branch_id = ?
+                        THEN oi.quantity
+                        ELSE 0
+                    END
+                ), 0) AS total_qty
+            FROM menu_items m
+            LEFT JOIN order_items oi ON oi.menu_item_id = m.id
+            LEFT JOIN orders o ON o.id = oi.order_id
+            WHERE m.is_active = 1
+            GROUP BY m.id, m.name
+            ORDER BY total_qty ASC, m.name ASC
+            LIMIT 3
+        ", [$selected_year, $selected_month, $branch_id]);
 
         $img_map = [];
         foreach (Pos::all('SELECT id, image FROM menu_items') as $row) {
@@ -315,18 +332,38 @@ class StatisticsController extends Controller
         ]);
 
         $nowPht = Carbon::now(Pos::TZ);
-        $businessOpen = $nowPht->hour >= 15 || $nowPht->hour < 2;
-        $activeDate = ($nowPht->hour < 2 ? $nowPht->copy()->subDay() : $nowPht)->format('Y-m-d');
+        $businessOpen = $nowPht->hour >= 15 || $nowPht->hour < 5;
+        $activeDate = ($nowPht->hour < 5 ? $nowPht->copy()->subDay() : $nowPht)->format('Y-m-d');
         if (!$businessOpen || $data['business_date'] !== $activeDate) {
-            return back()->withErrors(['business_day' => 'Petty cash can only be changed during the active business hours (3:00 PM–2:00 AM).']);
+            return back()->withErrors(['business_day' => 'Petty cash can only be changed during the active business hours (3:00 PM–5:00 AM).']);
         }
 
-        $key = ['branch_id' => Pos::branchId(), 'business_date' => $data['business_date']];
-        DB::table('daily_cash_records')->updateOrInsert($key, [
-            'petty_cash' => round((float)$data['petty_cash'], 2),
-            'updated_at' => now(),
-            'created_at' => DB::raw('COALESCE(created_at, CURRENT_TIMESTAMP)'),
-        ]);
+        $key = [
+            'branch_id' => Pos::branchId(),
+            'business_date' => $data['business_date'],
+        ];
+
+        $amountToAdd = round((float) $data['petty_cash'], 2);
+
+        $existing = DB::table('daily_cash_records')
+            ->where($key)
+            ->first();
+
+        if ($existing) {
+            DB::table('daily_cash_records')
+                ->where($key)
+                ->update([
+                    'petty_cash' => (float) $existing->petty_cash + $amountToAdd,
+                    'updated_at' => now(),
+                ]);
+        } else {
+            DB::table('daily_cash_records')->insert([
+                ...$key,
+                'petty_cash' => $amountToAdd,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return back()->with('cash_record_saved', true);
     }
@@ -341,10 +378,10 @@ class StatisticsController extends Controller
         ]);
 
         $nowPht = Carbon::now(Pos::TZ);
-        $businessOpen = $nowPht->hour >= 15 || $nowPht->hour < 2;
-        $activeDate = ($nowPht->hour < 2 ? $nowPht->copy()->subDay() : $nowPht)->format('Y-m-d');
+        $businessOpen = $nowPht->hour >= 15 || $nowPht->hour < 5;
+        $activeDate = ($nowPht->hour < 5 ? $nowPht->copy()->subDay() : $nowPht)->format('Y-m-d');
         if (!$businessOpen || $data['business_date'] !== $activeDate) {
-            return back()->withErrors(['business_day' => 'Expenses can only be added during the active business hours (3:00 PM–2:00 AM).']);
+            return back()->withErrors(['business_day' => 'Expenses can only be added during the active business hours (3:00 PM–5:00 AM).']);
         }
 
         DB::table('daily_expenses')->insert([
@@ -358,6 +395,52 @@ class StatisticsController extends Controller
 
         return back()->with('expense_added', true);
     }
+    /** Update an expense from the current active business day. */
+        public function updateExpense(Request $request, int $expense)
+        {
+            $data = $request->validate([
+                'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999.99'],
+                'note' => ['required', 'string', 'max:255'],
+            ]);
+
+            $nowPht = Carbon::now(Pos::TZ);
+            $businessOpen = $nowPht->hour >= 15 || $nowPht->hour < 5;
+
+            $activeDate = (
+                $nowPht->hour < 5
+                    ? $nowPht->copy()->subDay()
+                    : $nowPht
+            )->format('Y-m-d');
+
+            if (!$businessOpen) {
+                return back()->withErrors([
+                    'business_day' => 'Expenses can only be edited during the active business hours (3:00 PM–5:00 AM).'
+                ]);
+            }
+
+            $existing = DB::table('daily_expenses')
+                ->where('id', $expense)
+                ->where('branch_id', Pos::branchId())
+                ->where('business_date', $activeDate)
+                ->first();
+
+            if (!$existing) {
+                return back()->withErrors([
+                    'expense' => 'Expense not found or it no longer belongs to the active business day.'
+                ]);
+            }
+
+            DB::table('daily_expenses')
+                ->where('id', $expense)
+                ->where('branch_id', Pos::branchId())
+                ->update([
+                    'amount' => round((float) $data['amount'], 2),
+                    'note' => trim($data['note']),
+                    'updated_at' => now(),
+                ]);
+
+            return back()->with('expense_updated', true);
+        }
 
     /** JSON feed for the Excel export (the browser builds the .xlsx). */
     public function report(Request $request): JsonResponse

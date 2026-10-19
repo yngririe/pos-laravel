@@ -89,7 +89,8 @@ class OrderController extends Controller
         if ($priced === null) {
             return $this->fail('One or more order items are invalid.');
         }
-        [$itemRows, $subtotal, $discount, $total] = $this->calculateTotals($priced, $discountType);
+        [$itemRows, $subtotal, $discount, $total] =
+         $this->calculateTotals($priced, $discountType, $orderType);
         $amountPaid = (float) $data['amount_paid'];
         if (($data['payment_method'] ?? null) === 'cash' && $amountPaid < $total) {
             return $this->fail('Amount paid must be equal to or greater than the total.');
@@ -203,7 +204,8 @@ class OrderController extends Controller
         if ($priced === null) {
             return $this->fail('One or more order items are invalid.');
         }
-        [$itemRows, $subtotal, $discount, $total] = $this->calculateTotals($priced, $discountType);
+        [$itemRows, $subtotal, $discount, $total] =
+         $this->calculateTotals($priced, $discountType, $orderType);
         $amountPaid = ($data['payment_method'] ?? null) === 'gcash'
             ? $total
             : max((float) ($data['amount_paid'] ?? $total), $total);
@@ -319,17 +321,26 @@ class OrderController extends Controller
         return $priced;
     }
 
-    private function calculateTotals(array $items, string $discountType): array
+    private function calculateTotals(array $items, string $discountType, string $orderType): array
     {
-        $subtotal = (int) round(array_sum(array_map(fn ($item) => $item['price'] * $item['quantity'], $items)));
+        $subtotal = (int) round(array_sum(array_map(
+            fn ($item) => $item['price'] * $item['quantity'],
+            $items
+        )));
+
         $lowest = empty($items) ? 0 : min(array_column($items, 'price'));
+
         $discount = match ($discountType) {
             '20' => (int) round($lowest * 0.20),
             '10' => (int) round($lowest * 0.10),
             'minus10' => (int) min(10, $lowest),
             default => 0,
         };
-        return [$items, $subtotal, $discount, max(0, $subtotal - $discount)];
+
+        $deliveryFee = $orderType === 'delivery' ? 30 : 0;
+        $total = max(0, $subtotal - $discount) + $deliveryFee;
+
+        return [$items, $subtotal, $discount, $total];
     }
 
     private function fail(string $message): JsonResponse

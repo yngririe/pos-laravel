@@ -14,6 +14,8 @@
     const orderList       = document.getElementById('order-items-list');
     const orderEmpty      = document.getElementById('order-empty');
     const subtotalEl      = document.getElementById('subtotal-value');
+    const deliveryFeeRow = document.getElementById('delivery-fee-row');
+    const deliveryFeeEl  = document.getElementById('delivery-fee-value');
     const discountValEl   = document.getElementById('discount-value');
     const totalEl         = document.getElementById('total-value');
     const placeOrderBtn   = document.getElementById('place-order-btn');
@@ -150,6 +152,7 @@
         state.orderType = type;
         updateOrderTypeBadge(type);
         syncBeeperForOrderType(type);
+        updateTotals();
         showScreen('order');
     }
 
@@ -172,14 +175,30 @@
 
     function calcTotals() {
         let subtotal = 0;
-        state.order.forEach(item => { subtotal += item.price * item.qty; });
+        state.order.forEach(item => {
+            subtotal += item.price * item.qty;
+        });
+
         let totalDiscount = 0;
+
         if (state.discountType !== 'none' && state.order.length > 0) {
-            const cheapest = state.order.reduce((min, item) => item.price < min.price ? item : min, state.order[0]);
+            const cheapest = state.order.reduce(
+                (min, item) => item.price < min.price ? item : min,
+                state.order[0]
+            );
+
             totalDiscount = getItemDiscount(cheapest.price);
         }
-        const total = Math.round(subtotal - totalDiscount);
-        return { subtotal: Math.round(subtotal), totalDiscount, total };
+
+        const deliveryFee = state.orderType === 'delivery' ? 30 : 0;
+        const total = Math.round(subtotal - totalDiscount + deliveryFee);
+
+        return {
+            subtotal: Math.round(subtotal),
+            totalDiscount,
+            deliveryFee,
+            total
+        };
     }
 
     // ── Add to Order ───────────────────────────────────────────────────────
@@ -272,13 +291,23 @@
 
     // ── Update Totals ──────────────────────────────────────────────────────
     function updateTotals() {
-        const { subtotal, totalDiscount, total } = calcTotals();
+        const { subtotal, totalDiscount, deliveryFee, total } = calcTotals();
 
-        subtotalEl.textContent    = `Php ${subtotal.toLocaleString()}`;
+        subtotalEl.textContent = `Php ${subtotal.toLocaleString()}`;
+
         discountValEl.textContent = totalDiscount > 0
             ? `−Php ${totalDiscount.toLocaleString()}`
             : 'Php 0';
-        totalEl.textContent       = `Php ${total.toLocaleString()}`;
+
+        if (deliveryFeeRow) {
+            deliveryFeeRow.style.display = deliveryFee > 0 ? 'flex' : 'none';
+        }
+
+        if (deliveryFeeEl) {
+            deliveryFeeEl.textContent = `Php ${deliveryFee.toLocaleString()}`;
+        }
+
+        totalEl.textContent = `Php ${total.toLocaleString()}`;
         placeOrderBtn.textContent = `Place order – Php ${total.toLocaleString()}`;
 
         updatePlaceOrderState();
@@ -435,6 +464,23 @@
         }
     }
 
+       async function reconnectRememberedPrinter() {
+            if (!window.BluetoothPrinter) {
+                console.warn('[Printer] BluetoothPrinter is not available.');
+                updatePrinterBtn(false);
+                return;
+            }
+
+            if (BluetoothPrinter.isConnected()) {
+                console.log('[Printer] Persistent printer already connected.');
+                updatePrinterBtn(true);
+                return;
+            }
+
+            console.log('[Printer] Printer is not connected. Use Connect Printer.');
+            updatePrinterBtn(false);
+        }
+
     async function handlePrinterBtnRightClick(e) {
         e.preventDefault();
         if (typeof BluetoothPrinter === 'undefined') return;
@@ -498,16 +544,65 @@
 
     // Auto-print after a successful order
     async function autoPrint(orderPayload) {
-        if (typeof BluetoothPrinter === 'undefined') return;
-        if (!BluetoothPrinter.isConnected()) return;
+        if (typeof BluetoothPrinter === 'undefined') {
+            console.warn(
+                '[Printer] BluetoothPrinter is not loaded.'
+            );
+
+            return;
+        }
+
+        const rememberedPrinter =
+            localStorage.getItem('twistroll_printer_id');
+
+        // User has never connected a printer.
+        // Do not automatically open the Bluetooth picker.
+        if (!rememberedPrinter) {
+            console.log(
+                '[Printer] No remembered printer. Auto-print skipped.'
+            );
+
+            return;
+        }
 
         try {
-            const settings = await fetchReceiptSettings();
-            await BluetoothPrinter.print(orderPayload, settings);
-            showToast('Receipt printed!', 'success');
+            // Page navigation destroys the old GATT connection,
+            // so restore it before printing.
+            if (!BluetoothPrinter.isConnected()) {
+                console.log(
+                    '[Printer] Reconnecting before print...'
+                );
+
+                await BluetoothPrinter.reconnect();
+            }
+
+            const settings =
+                await fetchReceiptSettings();
+
+            await BluetoothPrinter.print(
+                orderPayload,
+                settings
+            );
+
+            updatePrinterBtn(true);
+
+            showToast(
+                'Receipt printed!',
+                'success'
+            );
+
         } catch (err) {
-            console.error('[Print error]', err);
-            showToast('Print failed: ' + err.message, 'error');
+            console.error(
+                '[Printer] Print error:',
+                err
+            );
+
+            updatePrinterBtn(false);
+
+            showToast(
+                'Printer disconnected. Click Printer to reconnect.',
+                'error'
+            );
         }
     }
 
@@ -648,5 +743,8 @@
     syncPaymentInputs();
     renderOrder();
     injectPrinterStatusBtn();
+
+    // Reconnect the previously selected printer whenever Home loads.
+    reconnectRememberedPrinter();
 
 })();

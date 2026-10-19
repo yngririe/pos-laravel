@@ -35,7 +35,11 @@ Route::post('/branches', [BranchController::class, 'store'])->middleware('thrott
 Route::middleware('auth')->group(function () {
     Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::get('/home', [HomeController::class, 'index'])->name('home');
+    Route::get('/home', function () {
+        return view('pos-shell');
+    })->name('home');
+
+    Route::get('/pos/home', [HomeController::class, 'index'])->name('pos.home');
     Route::get('/receipt-settings', [HomeController::class, 'receiptSettings'])->name('receipt.settings');
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders');
@@ -63,6 +67,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/statistics/report', [StatisticsController::class, 'report'])->name('statistics.report');
         Route::post('/statistics/daily-cash', [StatisticsController::class, 'saveDailyCash'])->name('statistics.daily-cash');
         Route::post('/statistics/expenses', [StatisticsController::class, 'addExpense'])->name('statistics.expenses.store');
+        Route::put('/statistics/expenses/{expense}', [StatisticsController::class, 'updateExpense'])->name('statistics.expenses.update');
 
         Route::get('/cashiers/create', [CashierController::class, 'create'])->name('cashiers.create');
         Route::post('/cashiers', [CashierController::class, 'store'])->name('cashiers.store');

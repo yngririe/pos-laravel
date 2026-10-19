@@ -25,13 +25,19 @@
 
 <header class="navbar">
     <div class="navbar__logo-wrap">
-        <a href="{{ route('home') }}" class="navbar__logo-link">
+        <a href="{{ route('pos.home') }}"
+            target="_self"
+            class="navbar__logo-link">
             <img src="<?= $base_url ?>assets/images/logo.png" alt="Twist &amp; Roll" class="navbar__logo-img">
         </a>
         <span class="branch-badge"><?= htmlspecialchars($branch_name) ?></span>
     </div>
     <nav class="navbar__nav">
-        <a href="{{ route('home') }}"       class="nav-link <?= $current_page==='home'       ?'nav-link--active':'' ?>">Home</a>
+        <a href="{{ route('pos.home') }}"
+            target="_self"
+            class="nav-link <?= $current_page==='home' ? 'nav-link--active' : '' ?>">
+                Home
+        </a>
         <a href="{{ route('orders') }}"     class="nav-link <?= $current_page==='orders'     ?'nav-link--active':'' ?>">Orders</a>
         <a href="{{ route('served') }}"     class="nav-link <?= $current_page==='served'     ?'nav-link--active':'' ?>">Served</a>
         <?php if ($role === 'admin'): ?>
@@ -225,6 +231,10 @@
                 <span>Subtotal</span>
                 <span class="subtotal-value-normal" id="subtotal-value">Php 0</span>
             </div>
+            <div class="payment-summary__row" id="delivery-fee-row" style="display:none;">
+                <span>Delivery Fee</span>
+                <span class="subtotal-value-normal" id="delivery-fee-value">Php 30</span>
+            </div>
             <div class="payment-summary__divider"></div>
             <div class="payment-summary__total">
                 <span>Total</span>
@@ -255,7 +265,19 @@
 </main>
 
     <script src="<?= $base_url ?>assets/js/main.js?v=20261015-xpad1"></script>
-    <script src="<?= $base_url ?>assets/js/escpos_bluetooth.js?v=20261015-xpad1"></script>
+    <script>
+        /*
+        * Use the BluetoothPrinter instance owned by the persistent POS shell.
+        * This keeps the Bluetooth GATT connection alive while the iframe
+        * navigates between POS pages.
+        */
+        if (window.parent !== window && window.parent.BluetoothPrinter) {
+            window.BluetoothPrinter = window.parent.BluetoothPrinter;
+            console.log('[Printer] Using persistent printer from POS shell.');
+        } else {
+            console.warn('[Printer] Persistent POS shell printer not found.');
+        }
+    </script>
     <script src="<?= $base_url ?>modules/homepage/homepage.js?v=20261015-delivery-notify1"></script>
     <script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
 <?php if ($role === 'cashier'): ?>
