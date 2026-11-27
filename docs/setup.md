@@ -1,7 +1,8 @@
-# Twist & Roll POS — Laravel version
+# Twist & Roll POS — Setup
 
-This folder is an **overlay**: it contains only the files that are specific to your POS.
-You drop it on top of a fresh Laravel 11 or 12 project.
+> Moved here from the old nested `pos-laravel/SETUP.md` on 27 November 2026. The repository root is now the complete Laravel project, so the "overlay" steps below only matter if you rebuild from a fresh Laravel install. For a normal checkout: `composer install`, copy `.env.example` to `.env`, set the database values, then follow section 3 onward.
+
+The app targets Laravel 12 on PHP 8.3 (see [architecture](architecture.md)).
 
 ## 1. Create the Laravel project and copy this overlay over it
 
@@ -82,12 +83,12 @@ Open http://localhost:8000. Menu images live in `public/assets/images/`.
 | Old | New |
 |---|---|
 | index.php (login/logout) | `/login`, `/logout` |
-| modules/homepage | `/home`, `/receipt-settings` |
+| modules/cashier/homepage (+ shared/base/homepage.css) | `/home` (shell) → `/pos/home` (page), `/receipt-settings` |
 | place_order / update_order / serve_order / void_order | `POST /orders`, `/orders/update`, `/orders/serve`, `/orders/void` |
-| modules/orders, served | `/orders`, `/served` |
-| modules/statistics (+ statistics_ajax.php) | `/statistics` (admin), `/statistics/report` |
-| modules/profile | `/profile` |
+| modules/cashier/orders, cashier/served | `/orders`, `/served` |
+| modules/admin/statistics (+ statistics_ajax.php) | `/statistics` (admin), `/statistics/report` |
+| modules/shared/profile | `/profile` |
 | signup.php | `/cashiers/create` (admin) |
 | create_branch.php | `/branches/create` |
-| modules/forgot-password | `/forgot-password`, `/reset-password` |
+| modules/auth/forgot-password | `/forgot-password`, `/reset-password` |
 | delete_order.php | removed (nothing called it, and it had no login/branch check) |

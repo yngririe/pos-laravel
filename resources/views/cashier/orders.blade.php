@@ -7,8 +7,8 @@
     <title>Orders — Twist &amp; Roll</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-xpad1">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/orders/orders.css?v=20261015-searchfix1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/shared/base/homepage.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/cashier/orders/orders.css?v=20261015-searchfix1">
     <script>
         const MENU_ITEMS   = <?= json_encode(array_values($menu_items)) ?>;
         const DISCOUNT_MAP = <?= json_encode($discount_map) ?>;
@@ -320,7 +320,7 @@
     </div>
 </div>
 
-<script src="<?= $base_url ?>modules/orders/orders.js?v=20261015-delivery-notify1"></script>
+<script src="<?= $base_url ?>modules/cashier/orders/orders.js?v=20261015-delivery-notify1"></script>
  <script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
 <?php if ($role === 'cashier'): ?>
 <script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>

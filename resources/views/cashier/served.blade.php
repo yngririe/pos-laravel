@@ -7,8 +7,8 @@
     <title>Served — Twist &amp; Roll</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/homepage/homepage.css?v=20261015-xpad1">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/served/served.css?v=20261015-searchfix1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/shared/base/homepage.css?v=20261015-xpad1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/cashier/served/served.css?v=20261015-searchfix1">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1C3924">
     <meta name="mobile-web-app-capable" content="yes">
@@ -164,7 +164,7 @@
     </div>
     <div class="pagination" id="pagination"></div>
 </div>
-<script src="<?= $base_url ?>modules/served/served.js?v=20261015-xpad1"></script>
+<script src="<?= $base_url ?>modules/cashier/served/served.js?v=20261015-xpad1"></script>
 <script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
 <?php if ($role === 'cashier'): ?>
 <script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>

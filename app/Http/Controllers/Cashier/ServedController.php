@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Cashier;
 
+use App\Http\Controllers\Controller;
 use App\Support\Pos;
 use Carbon\Carbon;
 
@@ -46,6 +47,6 @@ class ServedController extends Controller
         }
         sort($unique_biz_dates);
 
-        return view('pages.served', Pos::shared('served') + compact('served_orders', 'unique_biz_dates', 'reset_datetime'));
+        return view('cashier.served', Pos::shared('served') + compact('served_orders', 'unique_biz_dates', 'reset_datetime'));
     }
 }

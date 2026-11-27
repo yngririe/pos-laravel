@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Pos;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ class BranchController extends Controller
 {
     public function create()
     {
-        return view('branches.create', [
+        return view('admin.branches.create', [
             'error'    => session('error', ''),
             'success'  => session('success', ''),
             'disabled' => !config('pos.branch_setup_key'),

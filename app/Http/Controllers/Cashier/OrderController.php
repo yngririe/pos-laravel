@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Cashier;
 
-use App\Models\Order;
-use App\Models\MenuItem;
+use App\Http\Controllers\Controller;
+use App\Models\Sales\Order;
+use App\Models\Catalog\MenuItem;
 use App\Support\Pos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class OrderController extends Controller
 
         [$menu_items, $discount_map] = Pos::menu();
 
-        return view('pages.orders', Pos::shared('orders') + compact('orders', 'menu_items', 'discount_map'));
+        return view('cashier.orders', Pos::shared('orders') + compact('orders', 'menu_items', 'discount_map'));
     }
 
     /** Place a new order (JSON in / JSON out, same shape the old place_order.php used). */

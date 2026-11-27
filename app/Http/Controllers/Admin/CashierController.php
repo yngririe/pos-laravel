@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Pos;
 use Illuminate\Http\Request;
@@ -11,7 +12,7 @@ class CashierController extends Controller
 {
     public function create()
     {
-        return view('cashiers.create', [
+        return view('admin.cashiers.create', [
             'error'   => session('error', ''),
             'success' => session('success', ''),
         ]);

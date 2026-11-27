@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Cashier;
 
+use App\Http\Controllers\Controller;
 use App\Support\Pos;
 use Illuminate\Support\Facades\DB;
 
@@ -11,7 +12,7 @@ class HomeController extends Controller
     {
         [$menu_items, $discount_map] = Pos::menu();
 
-        return view('pages.homepage', Pos::shared('home') + compact('menu_items', 'discount_map'));
+        return view('cashier.homepage', Pos::shared('home') + compact('menu_items', 'discount_map'));
     }
 
     /** Receipt printing settings + the logged-in cashier's name (JSON, used by homepage.js). */

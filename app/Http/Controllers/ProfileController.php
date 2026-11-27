@@ -19,7 +19,7 @@ class ProfileController extends Controller
         $success_msg = session('success_msg', '');
         $error_msg   = session('error_msg', '');
 
-        return view('pages.profile', Pos::shared('profile') + compact('user', 'success_msg', 'error_msg'));
+        return view('shared.profile', Pos::shared('profile') + compact('user', 'success_msg', 'error_msg'));
     }
 
     /** One POST endpoint, switched on the hidden "action" field (same as the old profile.php forms). */

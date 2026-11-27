@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
-use App\Models\MenuItem;
+use App\Http\Controllers\Controller;
+use App\Models\Catalog\MenuItem;
 use App\Support\Pos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ class SettingsController extends Controller
 
         $menuItems = MenuItem::orderBy('category')->orderBy('name')->get();
 
-        return view('pages.settings', Pos::shared('settings') + [
+        return view('admin.settings', Pos::shared('settings') + [
             'receipt' => $receipt,
             'menuItems' => $menuItems,
             'success_msg' => session('success_msg', ''),

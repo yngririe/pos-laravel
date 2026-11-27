@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\MenuItem;
-use App\Models\ReceiptSetting;
+use App\Models\Catalog\MenuItem;
+use App\Models\Settings\ReceiptSetting;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
