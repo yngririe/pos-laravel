@@ -76,6 +76,57 @@ const BluetoothPrinter = (function () {
         return left + ' '.repeat(pad) + right;
     }
 
+    // Word-wrap text to the receipt width (long words are split).
+    function wrapText(text, width) {
+        width = width || 32;
+
+        const lines = [];
+        let line = '';
+
+        for (const word of String(text).split(/\s+/).filter(Boolean)) {
+            let w = word;
+
+            while (w.length > width) {
+                if (line) {
+                    lines.push(line);
+                    line = '';
+                }
+
+                lines.push(w.substring(0, width));
+                w = w.substring(width);
+            }
+
+            if (!line) {
+                line = w;
+            } else if ((line + ' ' + w).length <= width) {
+                line += ' ' + w;
+            } else {
+                lines.push(line);
+                line = w;
+            }
+        }
+
+        if (line) {
+            lines.push(line);
+        }
+
+        return lines;
+    }
+
+    // '14:30' or '14:30:00' -> '2:30 PM'
+    function formatPickupTime(value) {
+        const m = /^(\d{1,2}):(\d{2})/.exec(String(value));
+
+        if (!m) {
+            return String(value);
+        }
+
+        const h = parseInt(m[1], 10);
+        const h12 = h % 12 === 0 ? 12 : h % 12;
+
+        return h12 + ':' + m[2] + ' ' + (h >= 12 ? 'PM' : 'AM');
+    }
+
     function divider(char, width) {
         width = width || 32;
 
@@ -513,6 +564,47 @@ const BluetoothPrinter = (function () {
             cmd(LF)
         );
 
+        // Delivery customer name
+        if (
+            order.order_type === 'delivery' &&
+            order.customer_name
+        ) {
+            push(BOLD_ON);
+
+            for (const line of wrapText(
+                'Customer: ' + order.customer_name,
+                PAPER_WIDTH
+            )) {
+                push(
+                    encode(line),
+                    cmd(LF)
+                );
+            }
+
+            push(BOLD_OFF);
+        }
+
+        // Pickup time (Pick Up only)
+        if (
+            order.order_type === 'pick-up' &&
+            order.pickup_time
+        ) {
+            push(BOLD_ON);
+
+            push(
+                encode(
+                    padLine(
+                        'Pickup Time:',
+                        formatPickupTime(order.pickup_time),
+                        PAPER_WIDTH
+                    )
+                ),
+                cmd(LF)
+            );
+
+            push(BOLD_OFF);
+        }
+
         if (
             settings.show_beeper &&
             order.beeper_number
@@ -748,6 +840,36 @@ const BluetoothPrinter = (function () {
                 ),
                 cmd(LF)
             );
+        }
+
+        // Optional order notes
+        if (order.notes) {
+            push(
+                encode(
+                    divider(
+                        '-',
+                        PAPER_WIDTH
+                    )
+                ),
+                cmd(LF)
+            );
+
+            push(
+                BOLD_ON,
+                encode('Notes:'),
+                cmd(LF),
+                BOLD_OFF
+            );
+
+            for (const line of wrapText(
+                order.notes,
+                PAPER_WIDTH
+            )) {
+                push(
+                    encode(line),
+                    cmd(LF)
+                );
+            }
         }
 
         push(

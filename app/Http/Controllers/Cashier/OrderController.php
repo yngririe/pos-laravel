@@ -61,6 +61,11 @@ class OrderController extends Controller
             $customerName = null;
         }
 
+        [$pickupTime, $notes, $extraError] = $this->pickupTimeAndNotes($data, $orderType);
+        if ($extraError !== null) {
+            return $this->fail($extraError);
+        }
+
         // Delivery never uses a beeper. Pick up may optionally use one.
         // Dine in / take out still require a beeper.
         $rawBeeper = $data['beeper_number'] ?? null;
@@ -112,12 +117,14 @@ class OrderController extends Controller
         }
 
         try {
-            $order = DB::transaction(function () use ($data, $branch_id, $beeper, $customerName, $itemRows, $subtotal, $discount, $total, $amountPaid, $changeAmount) {
+            $order = DB::transaction(function () use ($data, $branch_id, $beeper, $customerName, $pickupTime, $notes, $itemRows, $subtotal, $discount, $total, $amountPaid, $changeAmount) {
                 $order = Order::create([
                     'branch_id'       => $branch_id,
                     'created_by_user_id' => Auth::id(),
                     'beeper_number'   => $beeper,
                     'customer_name'   => $customerName,
+                    'pickup_time'     => $pickupTime,
+                    'notes'           => $notes,
                     'order_type'      => $data['order_type'],
                     'payment_method'  => $data['payment_method'],
                     'amount_paid'     => $amountPaid,
@@ -161,6 +168,11 @@ class OrderController extends Controller
         }
         if ($orderType !== 'delivery') {
             $customerName = null;
+        }
+
+        [$pickupTime, $notes, $extraError] = $this->pickupTimeAndNotes($data, $orderType);
+        if ($extraError !== null) {
+            return $this->fail($extraError);
         }
 
         $rawBeeper = $data['beeper_number'] ?? null;
@@ -214,10 +226,12 @@ class OrderController extends Controller
         $diff = $total - (float) $order->total;
 
         try {
-            DB::transaction(function () use ($order, $data, $beeper, $customerName, $itemRows, $subtotal, $discount, $total, $amountPaid, $diff) {
+            DB::transaction(function () use ($order, $data, $beeper, $customerName, $pickupTime, $notes, $itemRows, $subtotal, $discount, $total, $amountPaid, $diff) {
                 $order->update([
                     'beeper_number'      => $beeper,
                     'customer_name'      => $customerName,
+                    'pickup_time'        => $pickupTime,
+                    'notes'              => $notes,
                     'order_type'         => $data['order_type'],
                     'payment_method'     => $data['payment_method'],
                     'amount_paid'        => $amountPaid,
@@ -300,6 +314,29 @@ class OrderController extends Controller
         return $affected === 0
             ? $this->fail('Order not found or unauthorized')
             : response()->json(['success' => true]);
+    }
+
+    /**
+     * Validate the optional pickup time (Pick Up only) and the optional note (any order type).
+     * Returns [pickupTime|null, notes|null, errorMessage|null].
+     */
+    private function pickupTimeAndNotes(array $data, string $orderType): array
+    {
+        $pickupTime = null;
+        $raw = trim((string) ($data['pickup_time'] ?? ''));
+        if ($orderType === 'pick-up' && $raw !== '') {
+            if (!preg_match('/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $raw, $m)) {
+                return [null, null, 'Pickup time is not a valid time.'];
+            }
+            $pickupTime = $m[1] . ':' . $m[2] . ':00';
+        }
+
+        $notes = trim((string) ($data['notes'] ?? ''));
+        if (mb_strlen($notes) > 255) {
+            return [null, null, 'Notes must be 255 characters or fewer.'];
+        }
+
+        return [$pickupTime, $notes === '' ? null : $notes, null];
     }
 
     private function priceItems(array $items): ?array

@@ -26,6 +26,9 @@
     const beeperWrap      = document.getElementById('beeper-wrap');
     const beeperError     = document.getElementById('beeper-error');
     const beeperLabel     = document.getElementById('beeper-label');
+    const pickupTimeWrap  = document.getElementById('pickup-time-wrap');
+    const pickupTimeInput = document.getElementById('pickup-time-input');
+    const notesInput      = document.getElementById('notes-input');
     const changeDisplay   = document.getElementById('change-display');
     const changeAmount    = document.getElementById('change-amount');
     const toastContainer  = document.getElementById('toast-container');
@@ -129,6 +132,10 @@
         beeperWrap.style.display = '';
         beeperError.classList.remove('visible');
         beeperWrap.classList.remove('beeper-error');
+
+        // Pickup time only applies to Pick Up orders; notes apply to every order.
+        if (pickupTimeWrap) pickupTimeWrap.style.display = optionalBeeper ? '' : 'none';
+        if (pickupTimeInput) pickupTimeInput.value = '';
 
         if (delivery) {
             beeperLabel.textContent = 'Customer name';
@@ -646,6 +653,8 @@
         const payload = {
             beeper_number:   state.orderType === 'delivery' || !beeper ? null : parseInt(beeper, 10),
             customer_name:   state.orderType === 'delivery' ? beeper : null,
+            pickup_time:     state.orderType === 'pick-up' && pickupTimeInput.value ? pickupTimeInput.value : null,
+            notes:           notesInput.value.trim() || null,
             order_type:      state.orderType,
             payment_method:  state.paymentMethod,
             amount_paid:     isCash ? amount : total,
@@ -702,6 +711,8 @@
                 discountSelect.value = 'none';
                 amountInput.value      = '';
                 beeperInput.value      = '';
+                if (pickupTimeInput) pickupTimeInput.value = '';
+                if (notesInput) notesInput.value = '';
                 beeperWrap.classList.remove('beeper-error');
                 beeperError.classList.remove('visible');
                 changeDisplay.style.display = 'none';

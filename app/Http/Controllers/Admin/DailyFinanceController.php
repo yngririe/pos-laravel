@@ -36,27 +36,35 @@ class DailyFinanceController extends Controller
 
         $amountToAdd = round((float) $data['petty_cash'], 2);
 
-        $existing = DB::table('daily_cash_records')
-            ->where($key)
-            ->first();
-
-        if ($existing) {
-            DB::table('daily_cash_records')
+        // Each submit ADDS to what is already saved for this business day.
+        // The row is locked while we read + write so two quick submits can't overwrite each other.
+        $newTotal = DB::transaction(function () use ($key, $amountToAdd) {
+            $existing = DB::table('daily_cash_records')
                 ->where($key)
-                ->update([
-                    'petty_cash' => (float) $existing->petty_cash + $amountToAdd,
-                    'updated_at' => now(),
-                ]);
-        } else {
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                $total = round((float) $existing->petty_cash + $amountToAdd, 2);
+                DB::table('daily_cash_records')
+                    ->where($key)
+                    ->update(['petty_cash' => $total, 'updated_at' => now()]);
+                return $total;
+            }
+
             DB::table('daily_cash_records')->insert([
                 ...$key,
                 'petty_cash' => $amountToAdd,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        }
+            return $amountToAdd;
+        });
 
-        return back()->with('cash_record_saved', true);
+        return back()
+            ->with('cash_record_saved', true)
+            ->with('petty_cash_added', $amountToAdd)
+            ->with('petty_cash_total', $newTotal);
     }
 
     /** Add another expense to the current business day. Expenses are intentionally separate rows. */

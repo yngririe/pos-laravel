@@ -437,7 +437,7 @@
                     <p class="overview-label">Today’s Business Day</p>
                     <div class="finance-date"><?= date('F j, Y', strtotime($today)) ?> · 3:00 PM to next day 5:00 AM</div>
                 </div>
-                <?php if (!$business_open): ?><span class="finance-closed">Business Closed · New day starts at 3:00 PM</span><?php elseif (session('cash_record_saved')): ?><span class="finance-saved">Petty cash saved</span><?php elseif (session('expense_added')): ?><span class="finance-saved">Expense added</span><?php endif; ?>
+                <?php if (!$business_open): ?><span class="finance-closed">Business Closed · New day starts at 3:00 PM</span><?php elseif (session('cash_record_saved')): ?><span class="finance-saved">Added ₱<?= number_format((float) session('petty_cash_added', 0), 0) ?> · Petty cash is now ₱<?= number_format((float) session('petty_cash_total', 0), 0) ?></span><?php elseif (session('expense_added')): ?><span class="finance-saved">Expense added</span><?php endif; ?>
             </div>
             <div class="finance-grid">
                 <div class="finance-card finance-card--editable finance-card--cash-entry">

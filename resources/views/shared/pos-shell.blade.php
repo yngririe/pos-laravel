@@ -42,7 +42,7 @@
     title="Twist & Roll POS"
 ></iframe>
 
-<script src="{{ asset('assets/js/escpos_bluetooth.js?v=20261017-persistent1') }}"></script>
+<script src="{{ asset('assets/js/escpos_bluetooth.js?v=20261127-notes1') }}"></script>
 
 <script>
     /*
