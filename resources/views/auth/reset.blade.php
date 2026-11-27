@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Twist & Roll — Reset Password</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('modules/forgot-password/reset_password.css?v=20261015-authfix2') }}">
+    <link rel="stylesheet" href="{{ asset('modules/auth/forgot-password/reset_password.css?v=20261015-authfix2') }}">
     <style>
         /* Safe fallback: keeps auth pages usable even if the external stylesheet is delayed. */
         html, body { min-height: 100%; }

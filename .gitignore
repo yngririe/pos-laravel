@@ -25,3 +25,9 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# User uploads (avatars, menu photos, store logo) are data, not source
+/public/assets/images/avatars/*
+!/public/assets/images/avatars/.gitkeep
+/public/assets/images/menu/*
+/public/assets/images/settings/*

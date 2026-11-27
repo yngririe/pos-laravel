@@ -1,15 +1,17 @@
 <?php
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\BranchController;
-use App\Http\Controllers\CashierController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\CashierController;
+use App\Http\Controllers\Admin\DailyFinanceController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StatisticsController;
+use App\Http\Controllers\Admin\StatisticsReportController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Cashier\HomeController;
+use App\Http\Controllers\Cashier\OrderController;
+use App\Http\Controllers\Cashier\ServedController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ServedController;
-use App\Http\Controllers\SettingsController;
-use App\Http\Controllers\StatisticsController;
 use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -36,7 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/home', function () {
-        return view('pos-shell');
+        return view('shared.pos-shell');
     })->name('home');
 
     Route::get('/pos/home', [HomeController::class, 'index'])->name('pos.home');
@@ -64,10 +66,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/settings/menu/{menuItem}', [SettingsController::class, 'destroyMenu'])->name('settings.menu.destroy');
 
         Route::get('/statistics', [StatisticsController::class, 'index'])->name('statistics');
-        Route::get('/statistics/report', [StatisticsController::class, 'report'])->name('statistics.report');
-        Route::post('/statistics/daily-cash', [StatisticsController::class, 'saveDailyCash'])->name('statistics.daily-cash');
-        Route::post('/statistics/expenses', [StatisticsController::class, 'addExpense'])->name('statistics.expenses.store');
-        Route::put('/statistics/expenses/{expense}', [StatisticsController::class, 'updateExpense'])->name('statistics.expenses.update');
+        Route::get('/statistics/report', [StatisticsReportController::class, 'report'])->name('statistics.report');
+        Route::post('/statistics/daily-cash', [DailyFinanceController::class, 'saveDailyCash'])->name('statistics.daily-cash');
+        Route::post('/statistics/expenses', [DailyFinanceController::class, 'addExpense'])->name('statistics.expenses.store');
+        Route::put('/statistics/expenses/{expense}', [DailyFinanceController::class, 'updateExpense'])->name('statistics.expenses.update');
 
         Route::get('/cashiers/create', [CashierController::class, 'create'])->name('cashiers.create');
         Route::post('/cashiers', [CashierController::class, 'store'])->name('cashiers.store');
