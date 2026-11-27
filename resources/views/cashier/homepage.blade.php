@@ -201,6 +201,16 @@
         </div>
         <p class="beeper-error-msg" id="beeper-error">Beeper number is required.</p>
 
+        <div class="order-panel__beeper order-panel__extra" id="pickup-time-wrap" style="display:none;">
+            <label class="beeper-label" for="pickup-time-input">Pickup time</label>
+            <input type="time" class="beeper-input" id="pickup-time-input" autocomplete="off">
+        </div>
+
+        <div class="order-panel__beeper order-panel__extra" id="notes-wrap">
+            <label class="beeper-label" for="notes-input">Notes</label>
+            <input type="text" class="beeper-input" id="notes-input" maxlength="255" placeholder="Optional" autocomplete="off">
+        </div>
+
         <div class="order-items-section">
             <p class="order-items-label">ORDER ITEMS</p>
             <div class="order-items-list" id="order-items-list">
@@ -278,7 +288,7 @@
             console.warn('[Printer] Persistent POS shell printer not found.');
         }
     </script>
-    <script src="<?= $base_url ?>modules/cashier/homepage/homepage.js?v=20261015-delivery-notify1"></script>
+    <script src="<?= $base_url ?>modules/cashier/homepage/homepage.js?v=20261127-notes1"></script>
     <script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
 <?php if ($role === 'cashier'): ?>
 <script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>

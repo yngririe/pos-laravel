@@ -159,6 +159,8 @@
                                 data-id="<?= $o['id'] ?>"
                                 data-beeper="<?= $o['beeper_number'] ?>"
                                 data-customer="<?= htmlspecialchars($o['customer_name'] ?? '') ?>"
+                                data-pickup-time="<?= htmlspecialchars(substr((string) ($o['pickup_time'] ?? ''), 0, 5)) ?>"
+                                data-notes="<?= htmlspecialchars($o['notes'] ?? '') ?>"
                                 data-payment="<?= $o['payment_method'] ?>"
                                 data-type="<?= $o['order_type'] ?>"
                                 data-total="<?= $o['total'] ?>"
@@ -180,6 +182,13 @@
                 <span class="order-list-payment"><?= ucfirst($o['payment_method']) ?></span>
                 <span class="order-list-time"><?= $time ?></span>
             </div>
+
+            <?php if (!empty($o['pickup_time']) || !empty($o['notes'])): ?>
+            <div class="order-extra-note" style="font-size:0.85em;margin:4px 0;">
+                <?php if (!empty($o['pickup_time'])): ?><div><strong>Pickup:</strong> <?= date('g:i A', strtotime($o['pickup_time'])) ?></div><?php endif; ?>
+                <?php if (!empty($o['notes'])): ?><div><strong>Notes:</strong> <?= htmlspecialchars($o['notes']) ?></div><?php endif; ?>
+            </div>
+            <?php endif; ?>
 
             <div class="order-items">
                 <?php for ($i = 0; $i < count($names); $i++): if (!$names[$i]) continue; ?>
@@ -251,6 +260,14 @@
             <span class="beeper-label">Customer name</span>
             <input type="text" id="epm-customer-name" class="beeper-input" placeholder="Enter customer name" maxlength="100" autocomplete="off">
         </div>
+        <div class="order-panel__beeper" id="epm-pickup-wrap" style="display:none;">
+            <label class="beeper-label" for="epm-pickup-time">Pickup time</label>
+            <input type="time" id="epm-pickup-time" class="beeper-input" autocomplete="off">
+        </div>
+        <div class="order-panel__beeper" id="epm-notes-wrap">
+            <label class="beeper-label" for="epm-notes">Notes</label>
+            <input type="text" id="epm-notes" class="beeper-input" placeholder="Optional" maxlength="255" autocomplete="off">
+        </div>
         <p class="epm-items-label">ORDER ITEMS</p>
         <div class="epm-items-list" id="epm-items-list"></div>
         <button type="button" class="epm-add-btn" id="epm-add-btn">add order +</button>
@@ -320,7 +337,7 @@
     </div>
 </div>
 
-<script src="<?= $base_url ?>modules/cashier/orders/orders.js?v=20261015-delivery-notify1"></script>
+<script src="<?= $base_url ?>modules/cashier/orders/orders.js?v=20261127-notes1"></script>
  <script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
 <?php if ($role === 'cashier'): ?>
 <script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>

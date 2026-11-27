@@ -21,7 +21,7 @@ class SettingsController extends Controller
 
         $menuItems = MenuItem::orderBy('category')->orderBy('name')->get();
 
-        return view('admin.settings', Pos::shared('settings') + [
+        return view('admin.settings.index', Pos::shared('settings') + [
             'receipt' => $receipt,
             'menuItems' => $menuItems,
             'success_msg' => session('success_msg', ''),

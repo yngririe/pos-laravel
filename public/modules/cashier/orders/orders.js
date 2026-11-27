@@ -233,6 +233,9 @@
     const epmBeeperWrap   = document.getElementById('epm-beeper-wrap');
     const epmCustomerWrap = document.getElementById('epm-customer-wrap');
     const epmCustomerName = document.getElementById('epm-customer-name');
+    const epmPickupWrap   = document.getElementById('epm-pickup-wrap');
+    const epmPickupTime   = document.getElementById('epm-pickup-time');
+    const epmNotes        = document.getElementById('epm-notes');
 
     const BEEPER_MAX = 16;
     const BEEPER_STORAGE_KEY = 'twistroll_next_beeper';
@@ -250,6 +253,8 @@
         const pickup = epm.orderType === 'pick-up';
         epmBeeperWrap.style.display = delivery ? 'none' : '';
         epmCustomerWrap.style.display = delivery ? '' : 'none';
+        if (epmPickupWrap) epmPickupWrap.style.display = pickup ? '' : 'none';
+        if (epmPickupTime && !pickup) epmPickupTime.value = '';
         epmBeeper.disabled = delivery;
         epmCustomerName.disabled = !delivery;
         if (delivery) {
@@ -475,6 +480,8 @@
             epmPaymentInput.value = epm.paymentMethod;
             epmBeeper.value       = this.dataset.beeper || '';
             epmCustomerName.value = this.dataset.customer || '';
+            epmPickupTime.value   = this.dataset.pickupTime || '';
+            epmNotes.value        = this.dataset.notes || '';
             epmAmountInput.value  = '';
             syncEditBeeperUI();
 
@@ -510,6 +517,8 @@
             order_id:            parseInt(epm.orderId),
             beeper_number:       beeper,
             customer_name:       epm.orderType === 'delivery' ? customerName : null,
+            pickup_time:         epm.orderType === 'pick-up' && epmPickupTime.value ? epmPickupTime.value : null,
+            notes:               epmNotes.value.trim() || null,
             order_type:          epm.orderType,
             payment_method:      epm.paymentMethod,
             amount_paid:         amountPaid,
