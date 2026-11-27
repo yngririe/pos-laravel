@@ -21,7 +21,8 @@
             const customer = (idEl?.dataset.customer || '').trim().toLowerCase();
             const items  = Array.from(card.querySelectorAll('.order-row span:first-child'))
                 .map(el => el.textContent.toLowerCase().replace(/^\d+x\s*/i, '')).join(' ');
-            return (currentFilter === 'all' || card.dataset.type === currentFilter)
+            const cardTypes = (card.dataset.types || card.dataset.type || '').split(' ');
+            return (currentFilter === 'all' || cardTypes.includes(currentFilter))
                 && (val === '' || beeper === val || customer.includes(val) || items.includes(val));
         });
     }
@@ -285,6 +286,17 @@
     const epmOrderId      = document.getElementById('epm-order-id');
 
     // ── HELPERS ────────────────────────────────────────────
+    function isPerItemType(t) { return t === 'dine-in' || t === 'take-out'; }
+
+    function mergeEpmDuplicates() {
+        const merged = [];
+        epm.items.forEach(o => {
+            const same = merged.find(m => m.id === o.id && (m.type || null) === (o.type || null));
+            if (same) same.qty += o.qty; else merged.push(o);
+        });
+        epm.items = merged;
+    }
+
     function getItemDiscount(price) {
         if (epm.discountType === '20') return Math.round(price * 0.20);
         if (epm.discountType === '10') return Math.round(price * 0.10);
@@ -328,15 +340,22 @@
         } else {
             const cheapest = epm.items.reduce((m, o) => o.price < m.price ? o : m, epm.items[0]);
             epm.items.forEach(item => {
-                const disc     = (epm.discountType !== 'none' && item.id === cheapest.id) ? getItemDiscount(item.price) : 0;
+                const disc     = (epm.discountType !== 'none' && item === cheapest) ? getItemDiscount(item.price) : 0;
                 const effPrice = item.price - disc;
                 const row      = document.createElement('div');
                 row.className  = 'order-item';
                 row.dataset.id = item.id;
+                const typeSelect = isPerItemType(epm.orderType)
+                    ? `<select class="order-item__type" aria-label="Order type for ${escHtml(item.name)}">
+                           <option value="dine-in"${item.type === 'dine-in' ? ' selected' : ''}>Dine in</option>
+                           <option value="take-out"${item.type === 'take-out' ? ' selected' : ''}>Take out</option>
+                       </select>`
+                    : '';
                 row.innerHTML  = `
                     <div style="flex:1;min-width:0;">
                         <span class="order-item__name">${escHtml(item.name)}</span>
                         <span class="order-item__price-sub">Php ${effPrice}</span>
+                        ${typeSelect}
                     </div>
                     <div class="order-item__qty">
                         <button class="qty-btn" data-action="dec">−</button>
@@ -348,18 +367,31 @@
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
                     </button>`;
+                const typeEl = row.querySelector('.order-item__type');
+                if (typeEl) {
+                    typeEl.addEventListener('change', () => {
+                        // Qty above 1: move just one unit to the other type (splits the row).
+                        if (item.qty > 1) {
+                            item.qty--;
+                            epm.items.splice(epm.items.indexOf(item) + 1, 0, { ...item, qty: 1, type: typeEl.value });
+                        } else {
+                            item.type = typeEl.value;
+                        }
+                        mergeEpmDuplicates();
+                        renderEpmItems(); updateEpmTotals();
+                    });
+                }
                 row.querySelector('[data-action="dec"]').addEventListener('click', () => {
-                    const o = epm.items.find(x => x.id === item.id); if (!o) return;
-                    o.qty--;
-                    if (o.qty <= 0) epm.items = epm.items.filter(x => x.id !== item.id);
+                    item.qty--;
+                    if (item.qty <= 0) epm.items = epm.items.filter(x => x !== item);
                     renderEpmItems(); updateEpmTotals();
                 });
                 row.querySelector('[data-action="inc"]').addEventListener('click', () => {
-                    const o = epm.items.find(x => x.id === item.id);
-                    if (o) { o.qty++; renderEpmItems(); updateEpmTotals(); }
+                    item.qty++;
+                    renderEpmItems(); updateEpmTotals();
                 });
                 row.querySelector('.order-item__remove').addEventListener('click', () => {
-                    epm.items = epm.items.filter(x => x.id !== item.id);
+                    epm.items = epm.items.filter(x => x !== item);
                     renderEpmItems(); updateEpmTotals();
                 });
                 epmItemsList.appendChild(row);
@@ -407,8 +439,9 @@
                 <span class="epm-picker-name">${escHtml(item.name)}</span>
                 <span class="epm-picker-price">Php ${item.price}</span>`;
             card.addEventListener('click', () => {
-                const ex = epm.items.find(o => o.id === item.id);
-                if (ex) { ex.qty++; } else { epm.items.push({ id: item.id, name: item.name, price: item.price, qty: 1 }); }
+                const newType = isPerItemType(epm.orderType) ? epm.orderType : null;
+                const ex = epm.items.find(o => o.id === item.id && (o.type || null) === newType);
+                if (ex) { ex.qty++; } else { epm.items.push({ id: item.id, name: item.name, price: item.price, qty: 1, type: newType }); }
                 card.style.transform = 'scale(0.94)';
                 setTimeout(() => { card.style.transform = ''; }, 200);
                 renderEpmItems(); updateEpmTotals();
@@ -433,8 +466,13 @@
             epm.orderType = this.dataset.type;
             epmTypeInput.value = this.dataset.type;
 
+            // Picking a type for the whole order re-tags every item; the per-item
+            // dropdowns can then override individual items.
+            epm.items.forEach(o => { o.type = isPerItemType(epm.orderType) ? epm.orderType : null; });
+            mergeEpmDuplicates();
+
             syncEditBeeperUI();
-            updateEpmTotals();
+            renderEpmItems();
         });
     });
 
@@ -474,6 +512,8 @@
             originalTotal         = parseFloat(this.dataset.total) || 0;
 
             try { epm.items = JSON.parse(this.dataset.items) || []; } catch(e) { epm.items = []; }
+            // Items on Dine in / Take out orders always carry a type; others carry none.
+            epm.items.forEach(o => { o.type = isPerItemType(epm.orderType) ? (o.type || epm.orderType) : null; });
 
             epmOrderId.value      = epm.orderId;
             epmTypeInput.value    = epm.orderType;
@@ -513,20 +553,27 @@
             ? (parseFloat(epmAmountInput.value) || total)
             : total;
 
+        // If every item ended up the same type, the order takes that type (matches the server).
+        let effectiveType = epm.orderType;
+        if (isPerItemType(effectiveType)) {
+            const types = Array.from(new Set(epm.items.map(o => o.type)));
+            if (types.length === 1) effectiveType = types[0];
+        }
+
         const payload = {
             order_id:            parseInt(epm.orderId),
             beeper_number:       beeper,
             customer_name:       epm.orderType === 'delivery' ? customerName : null,
             pickup_time:         epm.orderType === 'pick-up' && epmPickupTime.value ? epmPickupTime.value : null,
             notes:               epmNotes.value.trim() || null,
-            order_type:          epm.orderType,
+            order_type:          effectiveType,
             payment_method:      epm.paymentMethod,
             amount_paid:         amountPaid,
             subtotal,
             discount:            disc,
             discount_type:       epm.discountType,
             total,
-            items: epm.items.map(o => ({ id: o.id, name: o.name, price: o.price, qty: o.qty })),
+            items: epm.items.map(o => ({ id: o.id, name: o.name, price: o.price, qty: o.qty, order_type: o.type || null })),
         };
 
         epmSaveBtn.disabled = true; epmSaveBtn.textContent = 'Saving...';

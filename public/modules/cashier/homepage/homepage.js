@@ -9,6 +9,10 @@
         discountType: 'none',
     };
 
+    // Dine in / Take out orders let each item carry its own type.
+    const TYPE_LABELS = { 'dine-in': 'Dine in', 'take-out': 'Take out' };
+    function isPerItemType(t) { return t === 'dine-in' || t === 'take-out'; }
+
     // ── DOM refs ───────────────────────────────────────────────────────────
     const menuGrid        = document.getElementById('menu-grid');
     const orderList       = document.getElementById('order-items-list');
@@ -157,9 +161,13 @@
 
     function chooseOrderType(type) {
         state.orderType = type;
+        // Re-tag every item with the newly chosen type (or clear it for Delivery / Pick up),
+        // then merge rows that became identical.
+        state.order.forEach(o => { o.type = isPerItemType(type) ? type : null; });
+        mergeDuplicateRows();
         updateOrderTypeBadge(type);
         syncBeeperForOrderType(type);
-        updateTotals();
+        renderOrder();
         showScreen('order');
     }
 
@@ -217,11 +225,12 @@
         const name  = card.dataset.name;
         const price = parseInt(card.dataset.price);
 
-        const existing = state.order.find(o => o.id === id);
+        const itemType = isPerItemType(state.orderType) ? state.orderType : null;
+        const existing = state.order.find(o => o.id === id && o.type === itemType);
         if (existing) {
             existing.qty++;
         } else {
-            state.order.push({ id, name, price, qty: 1 });
+            state.order.push({ id, name, price, qty: 1, type: itemType });
         }
 
         renderOrder();
@@ -233,6 +242,21 @@
             card.style.transform   = '';
         }, 300);
     });
+
+    function mergeDuplicateRows() {
+        const merged = [];
+        state.order.forEach(o => {
+            const same = merged.find(m => m.id === o.id && m.type === o.type);
+            if (same) same.qty += o.qty; else merged.push(o);
+        });
+        state.order = merged;
+    }
+
+    function cheapestRow() {
+        return state.order.length
+            ? state.order.reduce((min, o) => o.price < min.price ? o : min, state.order[0])
+            : null;
+    }
 
     // ── Render Order ───────────────────────────────────────────────────────
     function renderOrder() {
@@ -253,10 +277,15 @@
         row.className  = 'order-item';
         row.dataset.id = item.id;
 
-        const cheapest  = state.order.length > 0
-            ? state.order.reduce((min, o) => o.price < min.price ? o : min, state.order[0])
-            : null;
-        const isCheapest = cheapest && item.id === cheapest.id;
+        const typeSelect = isPerItemType(state.orderType)
+            ? `<select class="order-item__type" aria-label="Order type for ${escHtml(item.name)}">
+                   <option value="dine-in"${item.type === 'dine-in' ? ' selected' : ''}>Dine in</option>
+                   <option value="take-out"${item.type === 'take-out' ? ' selected' : ''}>Take out</option>
+               </select>`
+            : '';
+
+        const cheapest  = cheapestRow();
+        const isCheapest = cheapest === item;
         const disc       = (state.discountType !== 'none' && isCheapest) ? getItemDiscount(item.price) : 0;
         const effPrice   = item.price - disc;
 
@@ -264,6 +293,7 @@
             <div style="flex:1;min-width:0;">
                 <span class="order-item__name" title="${escHtml(item.name)}">${escHtml(item.name)}</span>
                 <span class="order-item__price-sub">Php ${effPrice}</span>
+                ${typeSelect}
             </div>
             <div class="order-item__qty">
                 <button class="qty-btn" data-action="dec" aria-label="Decrease">−</button>
@@ -277,19 +307,31 @@
             </button>
         `;
 
+        const typeEl = row.querySelector('.order-item__type');
+        if (typeEl) {
+            typeEl.addEventListener('change', () => {
+                // Qty above 1: move just one unit to the other type (splits the row).
+                if (item.qty > 1) {
+                    item.qty--;
+                    state.order.splice(state.order.indexOf(item) + 1, 0, { ...item, qty: 1, type: typeEl.value });
+                } else {
+                    item.type = typeEl.value;
+                }
+                mergeDuplicateRows();
+                renderOrder();
+            });
+        }
         row.querySelector('[data-action="dec"]').addEventListener('click', () => {
-            const o = state.order.find(x => x.id === item.id);
-            if (!o) return;
-            o.qty--;
-            if (o.qty <= 0) state.order = state.order.filter(x => x.id !== item.id);
+            item.qty--;
+            if (item.qty <= 0) state.order = state.order.filter(x => x !== item);
             renderOrder();
         });
         row.querySelector('[data-action="inc"]').addEventListener('click', () => {
-            const o = state.order.find(x => x.id === item.id);
-            if (o) { o.qty++; renderOrder(); }
+            item.qty++;
+            renderOrder();
         });
         row.querySelector('.order-item__remove').addEventListener('click', () => {
-            state.order = state.order.filter(x => x.id !== item.id);
+            state.order = state.order.filter(x => x !== item);
             renderOrder();
         });
 
@@ -650,12 +692,19 @@
 
         const change = isCash ? (amount - total) : 0;
 
+        // Same rule as the server: if every item ended up the same type, the order takes that type.
+        let effectiveType = state.orderType;
+        if (isPerItemType(effectiveType)) {
+            const types = Array.from(new Set(state.order.map(o => o.type)));
+            if (types.length === 1) effectiveType = types[0];
+        }
+
         const payload = {
             beeper_number:   state.orderType === 'delivery' || !beeper ? null : parseInt(beeper, 10),
             customer_name:   state.orderType === 'delivery' ? beeper : null,
             pickup_time:     state.orderType === 'pick-up' && pickupTimeInput.value ? pickupTimeInput.value : null,
             notes:           notesInput.value.trim() || null,
-            order_type:      state.orderType,
+            order_type:      effectiveType,
             payment_method:  state.paymentMethod,
             amount_paid:     isCash ? amount : total,
             discount_type:  state.discountType,
@@ -668,6 +717,7 @@
                 name:  o.name,
                 price: o.price,
                 qty:   o.qty,
+                order_type: o.type,
             }))
         };
 

@@ -7,8 +7,8 @@
     <title>Orders — Twist &amp; Roll</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= $base_url ?>assets/index.css?v=20261015-xpad1">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/shared/base/homepage.css?v=20261015-xpad1">
-    <link rel="stylesheet" href="<?= $base_url ?>modules/cashier/orders/orders.css?v=20261015-searchfix1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/shared/base/homepage.css?v=20261127-itemtype1">
+    <link rel="stylesheet" href="<?= $base_url ?>modules/cashier/orders/orders.css?v=20261127-itemtype1">
     <script>
         const MENU_ITEMS   = <?= json_encode(array_values($menu_items)) ?>;
         const DISCOUNT_MAP = <?= json_encode($discount_map) ?>;
@@ -128,10 +128,24 @@
             $prices = explode('||', $o['item_prices'] ?? '');
             $qtys   = explode('||', $o['item_qtys']   ?? '');
             $ids    = explode('||', $o['item_ids']    ?? '');
+            $itemTypes = explode('||', $o['item_types'] ?? '');
             $time   = date('M d, g:i A', strtotime($o['created_at']));
             $type       = $o['order_type'];
             $typeLabel = ['dine-in'=>'Dine in','take-out'=>'Take out','delivery'=>'Delivery','pick-up'=>'Pick up'][$type] ?? ucfirst($type);
             $badgeClass = $type === 'dine-in' ? 'dine' : 'takeout';
+
+            // Per-item types (Dine in / Take out orders only). Blank = follows the order type.
+            $typeLabels = ['dine-in'=>'Dine in','take-out'=>'Take out'];
+            $rowTypes = [];
+            for ($i = 0; $i < count($names); $i++) {
+                $rowTypes[$i] = in_array($type, ['dine-in','take-out'], true)
+                    ? (($itemTypes[$i] ?? '') !== '' ? $itemTypes[$i] : $type)
+                    : '';
+            }
+            $distinctTypes = array_values(array_unique(array_filter($rowTypes)));
+            $isMixed = count($distinctTypes) > 1;
+            if ($isMixed) { $typeLabel = 'Mixed'; $badgeClass = 'mixed'; }
+            $filterTypes = $isMixed ? implode(' ', $distinctTypes) : $type;
             $orderLabel = $o['beeper_number'] ? '#'.$o['beeper_number'] : (($type === 'delivery' && !empty($o['customer_name'])) ? $o['customer_name'] : 'Order #'.str_pad($o['id'],4,'0',STR_PAD_LEFT));
 
             $itemsJson = [];
@@ -142,10 +156,11 @@
                     'name'  => $names[$i],
                     'price' => (int)$prices[$i],
                     'qty'   => (int)$qtys[$i],
+                    'type'  => $rowTypes[$i] !== '' ? $rowTypes[$i] : null,
                 ];
             }
         ?>
-        <div class="order-card" data-id="<?= $o['id'] ?>" data-type="<?= htmlspecialchars($type) ?>">
+        <div class="order-card" data-id="<?= $o['id'] ?>" data-type="<?= htmlspecialchars($type) ?>" data-types="<?= htmlspecialchars($filterTypes) ?>">
             <div class="order-top">
                 <div class="order-top-left">
                     <span class="order-id" data-beeper="<?= $o['beeper_number'] ?>" data-customer="<?= htmlspecialchars($o['customer_name'] ?? '') ?>"><?= $o['beeper_number'] ? 'Beeper #'.$o['beeper_number'] : (($type === 'delivery' && !empty($o['customer_name'])) ? htmlspecialchars($o['customer_name']) : 'Order #'.str_pad($o['id'],4,'0',STR_PAD_LEFT)) ?></span>
@@ -193,7 +208,7 @@
             <div class="order-items">
                 <?php for ($i = 0; $i < count($names); $i++): if (!$names[$i]) continue; ?>
                 <div class="order-row">
-                    <span><?= $qtys[$i] ?>x <?= htmlspecialchars($names[$i]) ?></span>
+                    <span class="order-row__name"><?= $qtys[$i] ?>x <?= htmlspecialchars($names[$i]) ?><?php if (!empty($rowTypes[$i])): ?> <em class="order-row__tag <?= $rowTypes[$i] === 'dine-in' ? 'dine' : 'takeout' ?>"><?= $typeLabels[$rowTypes[$i]] ?? '' ?></em><?php endif; ?></span>
                     <span>₱<?= number_format($prices[$i] * $qtys[$i], 0) ?></span>
                 </div>
                 <?php endfor; ?>
@@ -337,7 +352,7 @@
     </div>
 </div>
 
-<script src="<?= $base_url ?>modules/cashier/orders/orders.js?v=20261127-notes1"></script>
+<script src="<?= $base_url ?>modules/cashier/orders/orders.js?v=20261127-itemtype2"></script>
  <script src="/assets/js/pwa_register.js?v=20261015-xpad1"></script>
 <?php if ($role === 'cashier'): ?>
 <script>window.ORDER_NOTIFICATIONS_URL = @json(route('orders.notifications')); window.ORDERS_PAGE_URL = @json(route('orders'));</script>

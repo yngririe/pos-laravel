@@ -720,6 +720,27 @@ body {
     margin-top: 1px;
 }
 
+/* Per-item Dine in / Take out dropdown */
+.order-item__type {
+    display: block;
+    margin-top: 3px;
+    padding: 2px 18px 2px 7px;
+    font-size: clamp(9px, 0.71vw, 11.8px);
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--green-100);
+    background-color: var(--gold-20);
+    border: 1px solid var(--gold-100);
+    border-radius: 999px;
+    cursor: pointer;
+    max-width: 100%;
+}
+
+.order-item__type:focus {
+    outline: none;
+    border-color: var(--green-100);
+}
+
 .order-item__qty {
     display: flex;
     align-items: center;

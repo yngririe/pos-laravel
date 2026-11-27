@@ -23,7 +23,8 @@ class OrderController extends Controller
                    GROUP_CONCAT(oi.name         ORDER BY oi.id SEPARATOR '||') AS item_names,
                    GROUP_CONCAT(oi.price        ORDER BY oi.id SEPARATOR '||') AS item_prices,
                    GROUP_CONCAT(oi.quantity     ORDER BY oi.id SEPARATOR '||') AS item_qtys,
-                   GROUP_CONCAT(oi.menu_item_id ORDER BY oi.id SEPARATOR '||') AS item_ids
+                   GROUP_CONCAT(oi.menu_item_id ORDER BY oi.id SEPARATOR '||') AS item_ids,
+                   GROUP_CONCAT(COALESCE(oi.order_type, '') ORDER BY oi.id SEPARATOR '||') AS item_types
             FROM orders o
             LEFT JOIN order_items oi ON oi.order_id = o.id
             WHERE o.status = 'pending' AND o.branch_id = ?
@@ -91,12 +92,13 @@ class OrderController extends Controller
             return $this->fail('Invalid discount type.');
         }
 
-        $priced = $this->priceItems($data['items']);
+        $priced = $this->priceItems($data['items'], $orderType);
         if ($priced === null) {
             return $this->fail('One or more order items are invalid.');
         }
         [$itemRows, $subtotal, $discount, $total] =
          $this->calculateTotals($priced, $discountType, $orderType);
+        $orderType = $this->effectiveOrderType($orderType, $itemRows);
         $amountPaid = (float) $data['amount_paid'];
         if (($data['payment_method'] ?? null) === 'cash' && $amountPaid < $total) {
             return $this->fail('Amount paid must be equal to or greater than the total.');
@@ -117,7 +119,7 @@ class OrderController extends Controller
         }
 
         try {
-            $order = DB::transaction(function () use ($data, $branch_id, $beeper, $customerName, $pickupTime, $notes, $itemRows, $subtotal, $discount, $total, $amountPaid, $changeAmount) {
+            $order = DB::transaction(function () use ($data, $orderType, $branch_id, $beeper, $customerName, $pickupTime, $notes, $itemRows, $subtotal, $discount, $total, $amountPaid, $changeAmount) {
                 $order = Order::create([
                     'branch_id'       => $branch_id,
                     'created_by_user_id' => Auth::id(),
@@ -125,7 +127,7 @@ class OrderController extends Controller
                     'customer_name'   => $customerName,
                     'pickup_time'     => $pickupTime,
                     'notes'           => $notes,
-                    'order_type'      => $data['order_type'],
+                    'order_type'      => $orderType,
                     'payment_method'  => $data['payment_method'],
                     'amount_paid'     => $amountPaid,
                     'gcash_reference' => null,
@@ -213,12 +215,13 @@ class OrderController extends Controller
         if (empty($data['items']) || !is_array($data['items'])) {
             return $this->fail('No items');
         }
-        $priced = $this->priceItems($data['items']);
+        $priced = $this->priceItems($data['items'], $orderType);
         if ($priced === null) {
             return $this->fail('One or more order items are invalid.');
         }
         [$itemRows, $subtotal, $discount, $total] =
          $this->calculateTotals($priced, $discountType, $orderType);
+        $orderType = $this->effectiveOrderType($orderType, $itemRows);
         $amountPaid = ($data['payment_method'] ?? null) === 'gcash'
             ? $total
             : max((float) ($data['amount_paid'] ?? $total), $total);
@@ -226,13 +229,13 @@ class OrderController extends Controller
         $diff = $total - (float) $order->total;
 
         try {
-            DB::transaction(function () use ($order, $data, $beeper, $customerName, $pickupTime, $notes, $itemRows, $subtotal, $discount, $total, $amountPaid, $diff) {
+            DB::transaction(function () use ($order, $data, $orderType, $beeper, $customerName, $pickupTime, $notes, $itemRows, $subtotal, $discount, $total, $amountPaid, $diff) {
                 $order->update([
                     'beeper_number'      => $beeper,
                     'customer_name'      => $customerName,
                     'pickup_time'        => $pickupTime,
                     'notes'              => $notes,
-                    'order_type'         => $data['order_type'],
+                    'order_type'         => $orderType,
                     'payment_method'     => $data['payment_method'],
                     'amount_paid'        => $amountPaid,
                     'subtotal'           => $subtotal,
@@ -339,8 +342,11 @@ class OrderController extends Controller
         return [$pickupTime, $notes === '' ? null : $notes, null];
     }
 
-    private function priceItems(array $items): ?array
+    private function priceItems(array $items, string $orderType = ''): ?array
     {
+        // Only Dine in / Take out orders carry a per-item type; each item may be either one.
+        $perItem = in_array($orderType, ['dine-in', 'take-out'], true);
+
         $ids = collect($items)->pluck('id')->filter()->map(fn ($id) => (int) $id)->unique()->values();
         $menu = MenuItem::whereIn('id', $ids)->get()->keyBy('id');
         $priced = [];
@@ -349,11 +355,17 @@ class OrderController extends Controller
             $qty = (int) ($item['qty'] ?? 0);
             $menuItem = $menu->get($id);
             if (!$menuItem || $qty < 1) return null;
+            $itemType = null;
+            if ($perItem) {
+                $itemType = (string) ($item['order_type'] ?? $orderType);
+                if (!in_array($itemType, ['dine-in', 'take-out'], true)) return null;
+            }
             $priced[] = [
                 'menu_item_id' => $menuItem->id,
                 'name' => $menuItem->name,
                 'price' => (float) $menuItem->price,
                 'quantity' => $qty,
+                'order_type' => $itemType,
             ];
         }
         return $priced;
@@ -379,6 +391,19 @@ class OrderController extends Controller
         $total = max(0, $subtotal - $discount) + $deliveryFee;
 
         return [$items, $subtotal, $discount, $total];
+    }
+
+    /**
+     * Dine in / Take out orders where every item has the same type take that type;
+     * a genuinely mixed order keeps the type the cashier started it with.
+     */
+    private function effectiveOrderType(string $orderType, array $items): string
+    {
+        if (!in_array($orderType, ['dine-in', 'take-out'], true)) {
+            return $orderType;
+        }
+        $types = array_unique(array_column($items, 'order_type'));
+        return count($types) === 1 ? $types[0] : $orderType;
     }
 
     private function fail(string $message): JsonResponse

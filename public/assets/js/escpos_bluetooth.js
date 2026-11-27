@@ -514,12 +514,22 @@ const BluetoothPrinter = (function () {
                 'pick-up': 'Pick Up'
             };
 
+            const itemTypeSet = new Set(
+                (order.items || [])
+                    .map(i => i.order_type)
+                    .filter(Boolean)
+            );
+
             const typeLabel =
-                typeLabels[
-                    order.order_type
-                ] ||
-                order.order_type ||
-                'Unknown';
+                itemTypeSet.size > 1
+                    ? 'Mixed'
+                    : (
+                        typeLabels[
+                            order.order_type
+                        ] ||
+                        order.order_type ||
+                        'Unknown'
+                    );
 
             push(
                 encode(
@@ -672,9 +682,27 @@ const BluetoothPrinter = (function () {
             cmd(LF)
         );
 
+        // On mixed Dine in / Take out orders, tag each line so the kitchen knows.
+        const mixedItemTypes =
+            new Set(
+                (order.items || [])
+                    .map(i => i.order_type)
+                    .filter(Boolean)
+            ).size > 1;
+
         for (
-            const item of order.items
+            const orderItem of order.items
         ) {
+            const item = mixedItemTypes && orderItem.order_type
+                ? {
+                    ...orderItem,
+                    name: orderItem.name +
+                        (orderItem.order_type === 'take-out'
+                            ? ' [TO]'
+                            : ' [DI]')
+                }
+                : orderItem;
+
             const itemTotal =
                 item.price *
                 item.qty;
