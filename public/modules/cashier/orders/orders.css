@@ -225,6 +225,36 @@
     flex-shrink: 0;
 }
 
+.order-row__name { min-width: 0; }
+
+.order-row__tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.order-row__tag.dine {
+    background: var(--gold-20);
+    color: var(--green-100);
+    border: 1px solid var(--gold-100);
+}
+
+.order-row__tag.takeout {
+    background: var(--green-100);
+    color: var(--cream);
+}
+
+.badge.mixed {
+    background: var(--cream);
+    color: var(--green-100);
+    border: 1px solid var(--green-100);
+}
+
 /* DIVIDER */
 .divider {
     height: 1px;
@@ -238,7 +268,7 @@
 .extra-row {
     display: flex;
     justify-content: space-between;
-    font-size: clamp(10.5px, 0.85vw, 12px);
+    font-size: clamp(9px, 0.72vw, 10.5px);
     color: var(--text-muted);
     margin: 2px 0;
     gap: 8px;
